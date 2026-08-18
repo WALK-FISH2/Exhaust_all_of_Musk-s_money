@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Spend Money M0 icon</title>
+  <rect width="512" height="512" rx="112" fill="#172033"/>
+  <circle cx="256" cy="256" r="156" fill="#3066be"/>
+  <path d="M160 244h192v40H160z" fill="#fff"/>
+  <path d="M236 160h40v192h-40z" fill="#fff"/>
+  <circle cx="256" cy="256" r="74" fill="#172033"/>
+  <text x="256" y="278" fill="#fff" font-family="Arial, sans-serif" font-size="64" font-weight="700" text-anchor="middle">M0</text>
+</svg>

@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+dist/
+.taro/
+.cache/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+project.private.config.json

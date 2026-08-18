@@ -1,0 +1,14 @@
+{
+  "miniprogramRoot": "dist/weapp/",
+  "projectname": "spend-musk-money",
+  "description": "M0 cross-platform engineering verification",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram"
+}
