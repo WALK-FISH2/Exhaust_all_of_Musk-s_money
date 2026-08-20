@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: '自由模式 · $400B',
+  navigationBarTitleText: '花光 $400B',
 })

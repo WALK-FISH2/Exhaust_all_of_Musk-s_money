@@ -42,6 +42,10 @@ describe('free-mode catalog controller', () => {
     expect(view.metrics.totalSpentUsd).toBe(0)
     expect(view.receipt.lines).toEqual([])
     expect(view.visibleProducts).toHaveLength(PRODUCTS.length)
+
+    const afterShowResult = reduce(state, { type: 'show-result' })
+    expect(afterShowResult).toBe(state)
+    expect(afterShowResult.view).toBe('products')
   })
 
   it('routes increment, decrement, and MAX through domain commands', () => {
@@ -184,6 +188,13 @@ describe('free-mode completion flow', () => {
     state = reduce(state, { type: 'show-products' })
     expect(state.view).toBe('products')
     expect(deriveFreeModeViewModel(state).isReadOnly).toBe(true)
+
+    const frozenRun = state.run
+    const completedMetrics = deriveFreeModeViewModel(state).metrics
+    state = reduce(state, { type: 'show-result' })
+    expect(state.view).toBe('result')
+    expect(state.run).toBe(frozenRun)
+    expect(deriveFreeModeViewModel(state).metrics).toEqual(completedMetrics)
   })
 
   it('unlocks the last-dollar achievement through the UI action sequence', () => {

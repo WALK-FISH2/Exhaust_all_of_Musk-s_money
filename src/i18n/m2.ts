@@ -12,6 +12,7 @@ export const M2_COPY = {
   remaining: '剩余资产',
   spent: '已花费',
   progress: '消费进度',
+  spendingPercent: '消费比例',
   products: '荒诞购物清单',
   productsHint: '价格从低到高。分类和搜索只改变你看到什么，不改变已经买了什么。',
   searchPlaceholder: '搜索中文名、英文名或关键词',
@@ -26,6 +27,7 @@ export const M2_COPY = {
   max: 'MAX',
   quantityInput: '直接设置数量',
   readOnly: '本局已完成 · 商品仅供查看',
+  viewResult: '查看结算结果',
   receipt: '本局收据',
   receiptEmpty: '购物车还是空的。四千亿美元正在安静地等你。',
   distinctProducts: '商品种类',
@@ -61,6 +63,9 @@ export const DOMAIN_ERROR_COPY: Readonly<Record<DomainErrorCode, string>> = {
   UNSAFE_INTEGER: '数量过大，请输入更小的安全整数。',
   INVALID_RUN_ID: '无法创建新游戏，请重试。',
   INVALID_TIMESTAMP: '操作时间无效，请重试。',
+  INVALID_CHALLENGE_MODE: '当前模式不是挑战模式。',
+  CHALLENGE_ALREADY_STARTED: '挑战已经开始。',
+  CHALLENGE_EXPIRED: '时间到，本次操作未执行。',
   INVALID_STATE: '当前游戏状态无效。',
 }
 

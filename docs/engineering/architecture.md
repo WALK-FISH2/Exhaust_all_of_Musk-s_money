@@ -1,8 +1,8 @@
 # Architecture — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.4  
-> Date: 2026-08-18  
+> Version: 1.8  
+> Date: 2026-08-20  
 > Parent: `spec.md`
 
 ## 1. Architectural goal
@@ -304,7 +304,7 @@ Rounded percentages are rendering-only and never participate in record compariso
 
 Keep domain transitions framework-independent. UI can use a small adapter around React state/context. If a third-party store is introduced, it must call the same pure domain command functions rather than reimplementing rules in selectors/actions.
 
-M2 uses a small React reducer/controller adapter. `FreeModeUiState.run` is the only authoritative game state; search, category selection, result/product view selection, confirmation visibility, and feedback queues are UI-only state. Product cards receive quantities and stable callbacks, while every purchase, removal, direct-set, MAX, achievement, receipt total, and result value is produced by the shared data/domain layer. The M2 page does not read or write formal Storage and does not contain challenge timing.
+M2 uses a small React reducer/controller adapter. `FreeModeUiState.run` is the only authoritative game state; search, category selection, result/product view selection, confirmation visibility, and feedback queues are UI-only state. Product cards receive quantities and stable callbacks, while every purchase, removal, direct-set, MAX, achievement, receipt total, and result value is produced by the shared data/domain layer. Completed runs may switch repeatedly between `result` and `products` presentation views; the reducer permits entry to `result` only for a frozen completed/expired run and derives the result from that same `RunState`. The M2 page does not read or write formal Storage and does not contain challenge timing.
 
 ## 12. Platform boundaries
 
@@ -318,6 +318,18 @@ Allowed platform-specific concerns:
 - safe-area handling;
 - WeChat navigation configuration.
 - vibration/capability detection and safe-area handling.
+
+### 12.1 Responsive unit policy
+
+H5 product UI styles use native CSS pixels and media queries. H5 `pxtransform` is disabled so Taro does not convert responsive desktop/mobile CSS to root-font-relative `rem`. Taro 4.2.1 still injects its root-font script when that transform is disabled, so an H5-only post-template plugin removes this unused scaler; the generated H5 entry must not contain it. WeChat Mini Program compilation keeps its existing `pxtransform` path so the same authored component styles remain usable on that target.
+
+Do not compensate for H5 first-render sizing with browser zoom, `transform: scale(...)`, synthetic `resize` events, or machine-specific widths. The H5 build artifact check verifies the CSS-pixel game shell, absence of the root-font scaler, and intrinsic wrapping category controls.
+
+### 12.2 Responsive product-card policy
+
+Product cards keep one cross-platform component tree and the same Domain callbacks at every width. Desktop/tablet presentation retains the wider two-column card layout. At viewport widths up to 820px the product grid uses two compact columns: the visual becomes a short header band, names are single-line ellipsized, USD/CNY share a price row, `− / quantity / +` retain dedicated controls, MAX uses a compact full row, and the quantity summary plus subtotal remain visible. At 350px and below the grid falls back to one compact column so controls do not become unusably narrow.
+
+Responsive presentation must not introduce a second product dataset, alternate money math, or platform-specific MAX implementation. H5 build checks protect the two-column and very-narrow fallback rules; WEAPP must continue compiling the same component and styles.
 
 Not allowed to diverge:
 
@@ -413,11 +425,31 @@ If the PWA build pipeline differs from the preferred plugin, update this archite
 - 164 unit/contract tests pass across 10 test files, including 1,000 generated quantity mutations and deterministic replay.
 - Typecheck, lint, formatting, H5 build, WeChat build, and PWA build/artifact verification pass. M2 UI, M3 challenge timing/lifecycle, and M4 persistence remain intentionally unimplemented.
 
-### 17.3 M2 implementation and verification status — 2026-08-18
+### 17.3 M2 implementation and verification status — 2026-08-20
 
 - The former M0 status page is replaced by the playable Free Mode composition: branded disclaimer, sticky USD-first balance/CNY display, local category/search filters, 45 product cards, Domain-backed quantity controls, receipt, per-run achievement feedback, restart confirmation, completed result, and frozen read-only product return.
 - The React page delegates authoritative state transitions to a centralized Free Mode controller around M1 `RunState`; UI-local state cannot calculate or overwrite balance, MAX, achievements, receipt totals, or result metrics.
 - Product visuals are original CSS/emoji placeholders. No external image, real-person photo, company logo, reference-site asset, backend, account, analytics, formal save schema, lifetime achievement storage, or challenge timer was added.
-- 174 tests pass across 11 test files. New state-flow coverage includes creation, +/−, MAX, direct-input clamp/errors, category/search preservation, receipt synchronization, restart, official exact-zero completion/freeze, play-again, and the `$1 → $0` `sticker-finish` UI action sequence.
-- Typecheck, lint, formatting, H5 build, WeChat build, and PWA build/artifact verification pass. The production H5 shell also responds with HTTP 200 from a local static server.
-- T0209 remains open: the required interactive H5 browser smoke could not be executed because the available browser-control runtime failed during local initialization before a tab was created. No application console result is claimed. WeChat compilation passes to `dist/weapp/`; Developer Tools/runtime and device verification remain outstanding under the documented round boundary and later acceptance tasks.
+- Completed runs now support an application-owned `result ⇄ products (read-only)` navigation loop. The presentation view changes without copying or mutating the frozen RunState; product commands remain disabled in the read-only view.
+- Mobile product browsing uses two compact columns through 820px and a one-column compact fallback at 350px and below. The same ProductCard data and Domain callbacks are used on H5 and WeChat builds.
+- 176 tests pass across 13 test files. New coverage includes creation, +/−, MAX, direct-input clamp/errors, category/search preservation, all 11 category controls, completed-view round trips with unchanged RunState/results, compact-card control completeness, receipt synchronization, restart, official exact-zero completion/freeze, play-again, and the `$1 → $0` `sticker-finish` UI action sequence.
+- Typecheck, lint, formatting, 176 tests, H5 build, WeChat build, PWA build/artifact verification, and the expanded H5 layout artifact regression pass. The production H5 shell also responds with HTTP 200 from a local static server.
+- The reported H5 first-render half-scale defect was traced to Taro 4.2.1 converting authored CSS pixels to `rem` and injecting a root-font script whose initial synchronous measurement could be clamped to 20px until a later browser resize. H5 now keeps authored CSS pixels and emits no root-font scaler; the WeChat conversion remains enabled.
+- The category strip defect was traced to Taro H5's default button `width: 100%` inside a single-line horizontal container. Category controls now override to intrinsic width and use a wrapping flex layout, exposing all 10 categories plus “all” without a hidden horizontal-scroll dependency.
+- T0209 final Microsoft Edge smoke passes at 100% zoom. Initial load, F5, Ctrl+F5, reopening, all 11 category controls, search, +/−, MAX, direct quantity input, receipt synchronization, restart cancellation/confirmation, the formal capped `$400B` exact-zero path, completed freezing, repeated `result ⇄ products (read-only)` navigation, and play-again were exercised against the production H5 build. Repeated result derivation preserved the same `$400,000,000,000` spend, 1,000,000,008 total items, eight product kinds, four covered categories, top line item, achievements, and 100/100 result.
+- Responsive Edge smoke passes at 1920×1080 and 1366×768 desktop widths, at 430×932, 390×844, and 360×800 two-column compact widths, and at the 320×720 single-column fallback. No tested viewport has document-level horizontal overflow; compact quantity controls do not overlap, names retain ellipsis containment, and mobile purchase controls remain operable. Edge reported zero application errors, warnings, or deprecation warnings.
+- T0209 is complete. The shared exact-zero regression path is covered by automated Domain/application tests and the H5 production smoke above, while the same shared source compiles successfully to `dist/weapp/`. Detailed WeChat Developer Tools and real-device acceptance remains assigned to T0604/T0613 and is not claimed by this M2 browser smoke.
+
+### 17.4 M3 implementation and verification status — 2026-08-20
+
+- Challenge configuration is centralized as the exact baseline modes `challenge-30`, `challenge-60`, and `challenge-300`, with durations of 30,000, 60,000, and 300,000 milliseconds. Selecting a duration creates a `ready` run without timestamps; only the explicit start command sets `startedAt`, `durationMs`, and `deadlineAt` and enables purchasing.
+- Production wall-clock access is isolated behind the injected `Clock` interface. `platform/clock.ts` is the only M3 production source that calls `Date.now()`; challenge Domain functions receive timestamps and remain independent of React, Taro, browser, WeChat, Storage, and timer APIs.
+- Authoritative remaining time is always derived as `max(0, deadlineAt - now)`. The 200 ms UI interval is repaint-only. Every timed purchase command first reconciles the supplied timestamp, so a command at `deadlineAt` or later expires the run and is rejected without changing quantities or balance.
+- The shared lifecycle reconciler runs on H5 `visibilitychange`, `pageshow`, and `pagehide`, and on Taro `useDidShow`/`useDidHide` for the Mini Program/page lifecycle. A foreground/show event reads the current `Clock` and reconciles immediately; no client maintains a decrementing authoritative counter.
+- Exact zero before the deadline completes the run atomically at the purchase timestamp and records millisecond elapsed time. Natural or late-discovered timeout freezes the pre-command state at the configured duration. Challenge results are pure derivations and expose completion/expiry, configured and actual duration, spend, remaining balance, statistics, and read-only state.
+- The challenge UI supports duration selection, an explicit ready/start step, active countdown and purchase controls, timeout/early-clear results, frozen return to products, same-duration retry, and challenge switching without a page refresh. Repeated lifecycle reconciliation does not force a user out of the frozen product view.
+- `challenge-half-30` and `challenge-clear` are evaluated through the shared achievement pipeline. Pure record-candidate derivation/comparison supports exact integer spend and millisecond clear times; strict improvements replace records and ties preserve the existing record. No record or run persistence was added in M3; that remains T0407–T0410.
+- Boundary and lifecycle coverage includes all three durations at `deadline−1`, `deadline`, and `deadline+1`; normal countdown, early clear, natural timeout, long-background and route-return reconciliation, late-command rejection, challenge achievements, result navigation, retry/switch flows, lifecycle adapter contracts, and higher/lower/equal record comparisons.
+- 204 tests pass across 18 files. Typecheck, ESLint, Prettier, H5 build, WeChat build, and PWA artifact/layout checks pass. The same challenge Domain and lifecycle reconciliation source compiles to `dist/h5/` and `dist/weapp/`.
+- Microsoft Edge production smoke passed a real 30-second natural timeout with a purchase, frozen read-only return and result actions; a separate 30-second run backgrounded in another tab for about 10.2 seconds reconciled from `00:30` to `00:19`; and another 30-second run backgrounded through its deadline returned directly to the timeout result with `actualDurationMs = 30,000`. Edge reported no application console errors.
+- The installed WeChat Developer Tools remains unable to accept CLI smoke commands because its IDE service port is disabled. M3 did not change that user security setting. The WeChat build and shared/adaptor automated coverage pass; detailed Developer Tools and real-device background/foreground acceptance remains assigned to T0415/T0613 and is not claimed here.

@@ -1,4 +1,5 @@
 import { PRODUCT_BY_ID } from '../../src/data/products'
+import { getChallengeDurationMs } from '../../src/data/challenges'
 import type { DomainTransitionEvent } from '../../src/domain/achievement-events'
 import {
   createRun,
@@ -49,13 +50,20 @@ export function buildRunState(options: BuildRunOptions = {}): RunState {
   }
 
   const status = options.status ?? (totalSpentUsd === INITIAL_BUDGET_USD ? 'completed' : 'active')
+  const durationMs = mode === 'free' || status === 'ready' ? null : getChallengeDurationMs(mode)
+  const startedAt = status === 'ready' ? null : timestamp
+  const deadlineAt = durationMs === null ? null : timestamp + durationMs
+  const completedAt =
+    status === 'completed' ? timestamp + 500 : status === 'expired' ? deadlineAt : null
   return {
     ...result.value,
     quantities: { ...quantities },
     unitPriceSnapshotsUsd,
-    startedAt: status === 'ready' ? null : timestamp,
+    startedAt,
+    deadlineAt,
+    durationMs,
     status,
-    completedAt: status === 'completed' || status === 'expired' ? timestamp + 500 : null,
+    completedAt,
   }
 }
 

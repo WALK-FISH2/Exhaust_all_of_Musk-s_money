@@ -9,6 +9,9 @@ export type DomainErrorCode =
   | 'UNSAFE_INTEGER'
   | 'INVALID_RUN_ID'
   | 'INVALID_TIMESTAMP'
+  | 'INVALID_CHALLENGE_MODE'
+  | 'CHALLENGE_ALREADY_STARTED'
+  | 'CHALLENGE_EXPIRED'
   | 'INVALID_STATE'
 
 export interface DomainError {

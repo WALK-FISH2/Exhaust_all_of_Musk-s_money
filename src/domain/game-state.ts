@@ -1,5 +1,6 @@
 import type { AchievementId } from './achievement-types'
 import type { ProductDefinition } from './catalog'
+import { getChallengeDurationMs } from '../data/challenges'
 import { CATALOG_VERSION } from '../data/config'
 import { PRODUCTS } from '../data/products'
 import { domainFailure, domainSuccess, type DomainResult } from './errors'
@@ -12,7 +13,8 @@ import {
   subtractUsd,
 } from './money'
 
-export type RunMode = 'free' | 'challenge-30' | 'challenge-60' | 'challenge-300'
+export type ChallengeMode = 'challenge-30' | 'challenge-60' | 'challenge-300'
+export type RunMode = 'free' | ChallengeMode
 export type RunStatus = 'ready' | 'active' | 'completed' | 'expired'
 
 export interface RunState {
@@ -49,6 +51,7 @@ export type RunStateIssueCode =
   | 'INVALID_PRICE_SNAPSHOT'
   | 'SPEND_EXCEEDS_BUDGET'
   | 'INVALID_COMPLETION_STATE'
+  | 'INVALID_TIMING_STATE'
 
 export interface RunStateIssue {
   readonly code: RunStateIssueCode
@@ -89,6 +92,10 @@ export function createRun(input: CreateRunInput): DomainResult<RunState> {
     status: isFreeMode ? 'active' : 'ready',
     runUnlockedAchievementIds: [],
   })
+}
+
+export function isChallengeMode(mode: RunMode): mode is ChallengeMode {
+  return mode !== 'free'
 }
 
 export function getProductQuantity(state: RunState, productId: string): number {
@@ -158,6 +165,52 @@ export function validateRunState(
       issues.push({ code: 'INVALID_COMPLETION_STATE' })
       totals = null
     }
+  }
+
+  const validTimestamp = (value: number | null): value is number =>
+    value !== null && isNonNegativeSafeInteger(value)
+  let timingValid = true
+  if (state.mode === 'free') {
+    timingValid =
+      validTimestamp(state.startedAt) &&
+      state.deadlineAt === null &&
+      state.durationMs === null &&
+      (state.status === 'active' || state.status === 'completed') &&
+      (state.status === 'active'
+        ? state.completedAt === null
+        : validTimestamp(state.completedAt) && state.completedAt >= state.startedAt)
+  } else if (state.status === 'ready') {
+    timingValid =
+      state.startedAt === null &&
+      state.deadlineAt === null &&
+      state.durationMs === null &&
+      state.completedAt === null
+  } else {
+    const expectedDurationMs = getChallengeDurationMs(state.mode)
+    const startedAt = state.startedAt
+    const deadlineAt = state.deadlineAt
+    timingValid =
+      validTimestamp(startedAt) &&
+      validTimestamp(deadlineAt) &&
+      state.durationMs === expectedDurationMs &&
+      Number.isSafeInteger(startedAt + expectedDurationMs) &&
+      deadlineAt === startedAt + expectedDurationMs
+    if (timingValid && state.status === 'active') timingValid = state.completedAt === null
+    if (timingValid && state.status === 'completed') {
+      timingValid =
+        validTimestamp(startedAt) &&
+        validTimestamp(deadlineAt) &&
+        validTimestamp(state.completedAt) &&
+        state.completedAt >= startedAt &&
+        state.completedAt < deadlineAt
+    }
+    if (timingValid && state.status === 'expired') {
+      timingValid = state.completedAt === deadlineAt
+    }
+  }
+  if (!timingValid) {
+    issues.push({ code: 'INVALID_TIMING_STATE' })
+    totals = null
   }
 
   return { valid: issues.length === 0, issues, totals }

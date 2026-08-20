@@ -1,7 +1,14 @@
 import { CATEGORIES } from '../data/categories'
 import { ACHIEVEMENT_DEFINITIONS } from '../data/achievements'
+import { getChallengeDurationMs } from '../data/challenges'
 import { PRODUCTS } from '../data/products'
 import type { AchievementId } from '../domain/achievement-types'
+import {
+  deriveRemainingChallengeMs,
+  reconcileChallengeTime,
+  startChallenge,
+  type ChallengeReconciliation,
+} from '../domain/challenge'
 import type { ProductDefinition } from '../domain/catalog'
 import {
   decrementProduct,
@@ -15,11 +22,19 @@ import {
   createRun,
   getProductQuantity,
   getProductUnitPriceUsd,
+  isChallengeMode,
+  type ChallengeMode,
+  type RunMode,
   type RunState,
 } from '../domain/game-state'
 import { multiplyUsd } from '../domain/money'
 import { deriveReceipt, type Receipt } from '../domain/receipt'
-import { deriveResultMetrics, type RunResultMetrics } from '../domain/results'
+import {
+  deriveChallengeResult,
+  deriveResultMetrics,
+  type ChallengeRunResult,
+  type RunResultMetrics,
+} from '../domain/results'
 
 export type FreeModeView = 'products' | 'result'
 export type UiNoticeCode = 'QUANTITY_CLAMPED' | 'MAX_NO_CHANGE'
@@ -33,6 +48,9 @@ export interface FreeModeUiState {
   readonly errorCode: DomainErrorCode | null
   readonly noticeCode: UiNoticeCode | null
   readonly achievementNotifications: readonly AchievementId[]
+  readonly observedNowMs: number
+  readonly modePickerOpen: boolean
+  readonly pendingMode: RunMode | null
 }
 
 export interface ProductCardViewModel {
@@ -46,6 +64,11 @@ export interface FreeModeViewModel {
   readonly receipt: Receipt
   readonly visibleProducts: readonly ProductCardViewModel[]
   readonly isReadOnly: boolean
+  readonly isFrozen: boolean
+  readonly canPurchase: boolean
+  readonly challengeDurationMs: number | null
+  readonly remainingChallengeMs: number | null
+  readonly challengeResult: ChallengeRunResult | null
   readonly unlockedAchievementCount: number
   readonly totalAchievementCount: number
 }
@@ -67,8 +90,19 @@ export type FreeModeAction =
   | { readonly type: 'cancel-restart' }
   | { readonly type: 'play-again'; readonly runId: string; readonly timestamp: number }
   | { readonly type: 'show-products' }
+  | { readonly type: 'show-result' }
   | { readonly type: 'dismiss-achievements' }
   | { readonly type: 'dismiss-feedback' }
+  | { readonly type: 'open-mode-picker' }
+  | { readonly type: 'close-mode-picker' }
+  | {
+      readonly type: 'select-mode'
+      readonly mode: RunMode
+      readonly runId: string
+      readonly timestamp: number
+    }
+  | { readonly type: 'start-challenge'; readonly timestamp: number }
+  | { readonly type: 'reconcile-time'; readonly timestamp: number }
 
 export class FreeModeControllerError extends Error {
   readonly code = 'FREE_MODE_INITIALIZATION_FAILED' as const
@@ -79,8 +113,8 @@ export class FreeModeControllerError extends Error {
   }
 }
 
-export function createFreeModeUiState(runId: string, timestamp: number): FreeModeUiState {
-  const result = createRun({ id: runId, mode: 'free', timestamp })
+function createModeUiState(mode: RunMode, runId: string, timestamp: number): FreeModeUiState {
+  const result = createRun({ id: runId, mode, timestamp })
   if (!result.ok) throw new FreeModeControllerError()
   return {
     run: result.value,
@@ -91,7 +125,22 @@ export function createFreeModeUiState(runId: string, timestamp: number): FreeMod
     errorCode: null,
     noticeCode: null,
     achievementNotifications: [],
+    observedNowMs: timestamp,
+    modePickerOpen: false,
+    pendingMode: null,
   }
+}
+
+export function createFreeModeUiState(runId: string, timestamp: number): FreeModeUiState {
+  return createModeUiState('free', runId, timestamp)
+}
+
+export function createChallengeUiState(
+  mode: ChallengeMode,
+  runId: string,
+  timestamp: number,
+): FreeModeUiState {
+  return createModeUiState(mode, runId, timestamp)
 }
 
 export function parseQuantityInput(rawQuantity: string): number {
@@ -130,18 +179,50 @@ export function deriveFreeModeViewModel(state: FreeModeUiState): FreeModeViewMod
     }
   })
 
+  const isFrozen = state.run.status === 'completed' || state.run.status === 'expired'
+  const challengeDurationMs = isChallengeMode(state.run.mode)
+    ? getChallengeDurationMs(state.run.mode)
+    : null
   return {
     metrics: deriveResultMetrics(state.run),
     receipt: deriveReceipt(state.run),
     visibleProducts,
-    isReadOnly: state.run.status === 'completed' || state.run.status === 'expired',
+    isReadOnly: state.run.status !== 'active',
+    isFrozen,
+    canPurchase: state.run.status === 'active',
+    challengeDurationMs,
+    remainingChallengeMs: isChallengeMode(state.run.mode)
+      ? deriveRemainingChallengeMs(state.run, state.observedNowMs)
+      : null,
+    challengeResult: deriveChallengeResult(state.run),
     unlockedAchievementCount: state.run.runUnlockedAchievementIds.length,
     totalAchievementCount: ACHIEVEMENT_DEFINITIONS.length,
   }
 }
 
-function resetRun(runId: string, timestamp: number): FreeModeUiState {
-  return createFreeModeUiState(runId, timestamp)
+function resetRun(mode: RunMode, runId: string, timestamp: number): FreeModeUiState {
+  return createModeUiState(mode, runId, timestamp)
+}
+
+function applyReconciliation(
+  state: FreeModeUiState,
+  reconciliation: ChallengeReconciliation,
+  timestamp: number,
+  errorCode: DomainErrorCode | null = null,
+): FreeModeUiState {
+  return {
+    ...state,
+    run: reconciliation.state,
+    observedNowMs: timestamp,
+    view:
+      reconciliation.changed && reconciliation.state.status === 'expired' ? 'result' : state.view,
+    errorCode,
+    noticeCode: null,
+    achievementNotifications: [
+      ...state.achievementNotifications,
+      ...reconciliation.newlyUnlockedAchievementIds,
+    ],
+  }
 }
 
 function applyCommandResult(
@@ -150,6 +231,14 @@ function applyCommandResult(
   noticeCode: UiNoticeCode | null = null,
 ): FreeModeUiState {
   if (!result.ok) {
+    if ('reconciliation' in result) {
+      return applyReconciliation(
+        state,
+        result.reconciliation,
+        result.reconciliation.event?.timestamp ?? state.observedNowMs,
+        result.error.code,
+      )
+    }
     return { ...state, errorCode: result.error.code, noticeCode: null }
   }
 
@@ -158,6 +247,7 @@ function applyCommandResult(
     ...state,
     run: nextRun,
     view: nextRun.status === 'completed' ? 'result' : state.view,
+    observedNowMs: result.value.event.timestamp,
     errorCode: null,
     noticeCode,
     achievementNotifications: [
@@ -224,17 +314,65 @@ export function freeModeReducer(state: FreeModeUiState, action: FreeModeAction):
     case 'request-restart':
       return deriveResultMetrics(state.run).totalSpentUsd > 0
         ? { ...state, restartConfirmationOpen: true }
-        : resetRun(action.runId, action.timestamp)
-    case 'confirm-restart':
+        : resetRun(state.run.mode, action.runId, action.timestamp)
+    case 'confirm-restart': {
+      const targetMode = state.pendingMode ?? state.run.mode
+      return resetRun(targetMode, action.runId, action.timestamp)
+    }
     case 'play-again':
-      return resetRun(action.runId, action.timestamp)
+      return resetRun(state.run.mode, action.runId, action.timestamp)
     case 'cancel-restart':
-      return { ...state, restartConfirmationOpen: false }
+      return { ...state, restartConfirmationOpen: false, pendingMode: null }
     case 'show-products':
       return { ...state, view: 'products' }
+    case 'show-result':
+      return state.run.status === 'completed' || state.run.status === 'expired'
+        ? { ...state, view: 'result' }
+        : state
     case 'dismiss-achievements':
       return { ...state, achievementNotifications: [] }
     case 'dismiss-feedback':
       return { ...state, errorCode: null, noticeCode: null }
+    case 'open-mode-picker':
+      return { ...state, modePickerOpen: true }
+    case 'close-mode-picker':
+      return { ...state, modePickerOpen: false }
+    case 'select-mode': {
+      const isFrozen = state.run.status === 'completed' || state.run.status === 'expired'
+      const requiresConfirmation = !isFrozen && deriveResultMetrics(state.run).totalSpentUsd > 0
+      return requiresConfirmation
+        ? {
+            ...state,
+            modePickerOpen: false,
+            restartConfirmationOpen: true,
+            pendingMode: action.mode,
+          }
+        : resetRun(action.mode, action.runId, action.timestamp)
+    }
+    case 'start-challenge': {
+      const result = startChallenge(state.run, action.timestamp)
+      return result.ok
+        ? {
+            ...state,
+            run: result.value,
+            view: 'products',
+            observedNowMs: action.timestamp,
+            errorCode: null,
+            noticeCode: null,
+          }
+        : { ...state, errorCode: result.error.code, noticeCode: null }
+    }
+    case 'reconcile-time': {
+      const result = reconcileChallengeTime(state.run, action.timestamp)
+      if (!result.ok) {
+        return {
+          ...state,
+          observedNowMs: action.timestamp,
+          errorCode: result.error.code,
+          noticeCode: null,
+        }
+      }
+      return applyReconciliation(state, result.value, action.timestamp)
+    }
   }
 }

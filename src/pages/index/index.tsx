@@ -1,8 +1,10 @@
-import { Text, View } from '@tarojs/components'
+import { Button, Text, View } from '@tarojs/components'
 
 import { BalancePanel } from '../../components/game/BalancePanel'
 import { BrandHeader } from '../../components/game/BrandHeader'
 import { CatalogToolbar } from '../../components/game/CatalogToolbar'
+import { ChallengePicker } from '../../components/game/ChallengePicker'
+import { ChallengeStatus } from '../../components/game/ChallengeStatus'
 import { AchievementFeedback, FeedbackBanner } from '../../components/game/FeedbackOverlays'
 import { FreeModeResult } from '../../components/game/FreeModeResult'
 import { ProductCard } from '../../components/game/ProductCard'
@@ -10,7 +12,9 @@ import { ReceiptPanel } from '../../components/game/ReceiptPanel'
 import { RestartDialog } from '../../components/game/RestartDialog'
 import { ACHIEVEMENT_DEFINITIONS } from '../../data/achievements'
 import { useFreeModeGame } from '../../hooks/use-free-mode-game'
+import { isChallengeMode } from '../../domain/game-state'
 import { DOMAIN_ERROR_COPY, M2_COPY, UI_NOTICE_COPY } from '../../i18n/m2'
+import { M3_COPY } from '../../i18n/m3'
 
 import './index.scss'
 
@@ -29,8 +33,22 @@ export default function IndexPage(): JSX.Element {
   return (
     <View className='game-page'>
       <View className='game-shell'>
-        <BrandHeader onRestart={actions.requestRestart} />
-        <BalancePanel metrics={viewModel.metrics} completed={viewModel.isReadOnly} />
+        <BrandHeader
+          mode={state.run.mode}
+          onRestart={actions.requestRestart}
+          onOpenChallenges={actions.openModePicker}
+        />
+        <BalancePanel metrics={viewModel.metrics} completed={viewModel.isFrozen} />
+
+        {isChallengeMode(state.run.mode) ? (
+          <ChallengeStatus
+            mode={state.run.mode}
+            status={state.run.status}
+            remainingMs={viewModel.remainingChallengeMs ?? 0}
+            onStart={actions.startChallenge}
+            onChangeChallenge={actions.openModePicker}
+          />
+        ) : null}
 
         {state.view === 'result' ? (
           <FreeModeResult
@@ -39,11 +57,42 @@ export default function IndexPage(): JSX.Element {
             achievementNamesById={ACHIEVEMENT_NAMES_BY_ID}
             onPlayAgain={actions.playAgain}
             onShowProducts={actions.showProducts}
+            challengeResult={viewModel.challengeResult}
+            onChangeChallenge={actions.openModePicker}
           />
         ) : (
           <>
-            {viewModel.isReadOnly ? (
-              <Text className='read-only-banner'>{M2_COPY.readOnly}</Text>
+            {viewModel.isFrozen ? (
+              <View className='completed-catalog-banner'>
+                <Text className='completed-catalog-banner__label'>
+                  {viewModel.challengeResult ? M3_COPY.completedReadOnly : M2_COPY.readOnly}
+                </Text>
+                <View className='completed-catalog-banner__actions'>
+                  <Button
+                    id='show-result'
+                    className='completed-catalog-button completed-catalog-button--primary'
+                    onClick={actions.showResult}
+                  >
+                    {M2_COPY.viewResult}
+                  </Button>
+                  <Button
+                    id='play-again-from-products'
+                    className='completed-catalog-button'
+                    onClick={actions.playAgain}
+                  >
+                    {viewModel.challengeResult ? M3_COPY.retryChallenge : M2_COPY.playAgain}
+                  </Button>
+                  {viewModel.challengeResult ? (
+                    <Button
+                      id='change-challenge-from-products'
+                      className='completed-catalog-button'
+                      onClick={actions.openModePicker}
+                    >
+                      {M3_COPY.changeChallenge}
+                    </Button>
+                  ) : null}
+                </View>
+              </View>
             ) : null}
             <CatalogToolbar
               selectedCategoryId={state.selectedCategoryId}
@@ -62,7 +111,7 @@ export default function IndexPage(): JSX.Element {
                     <ProductCard
                       key={item.product.id}
                       {...item}
-                      readOnly={viewModel.isReadOnly}
+                      readOnly={!viewModel.canPurchase}
                       onIncrement={actions.increment}
                       onDecrement={actions.decrement}
                       onMax={actions.max}
@@ -95,6 +144,12 @@ export default function IndexPage(): JSX.Element {
         open={state.restartConfirmationOpen}
         onCancel={actions.cancelRestart}
         onConfirm={actions.confirmRestart}
+      />
+      <ChallengePicker
+        open={state.modePickerOpen}
+        currentMode={state.run.mode}
+        onClose={actions.closeModePicker}
+        onSelectMode={actions.selectMode}
       />
     </View>
   )

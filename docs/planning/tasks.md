@@ -94,47 +94,49 @@ M0 completion evidence and outstanding runtime-verification limits are recorded 
 - [x] **T0208** Build Free Mode completion result page and completed/frozen read-only return-to-products behavior.  
       Requirements: BR-008, BR-013.  
       Dependencies: T0110, T0114, T0117, T0007.
-- [ ] **T0209** Verify exact-zero flow and the baseline capped multi-product $400B regression path on H5 and WeChat.  
+- [x] **T0209** Verify exact-zero flow and the baseline capped multi-product $400B regression path on H5 and WeChat.  
       Requirements: BR-007, BR-022, BR-029.  
       Dependencies: T0118, T0205, T0208.
 
-T0201–T0208 completion evidence and the outstanding T0209 interactive H5 verification limit are recorded in `docs/engineering/architecture.md` §17.3.
+T0201–T0209 completion evidence is recorded in `docs/engineering/architecture.md` §17.3. First-render sizing, category layout, completed result/read-only navigation, mobile compact-card rules, and the formal exact-zero path have automated regression coverage. Final Microsoft Edge smoke passed across representative desktop/mobile widths with zero application Console errors or warnings; the same shared source and exact-zero rules compile to the WeChat target. Detailed WeChat Developer Tools and real-device acceptance remains owned by T0604/T0613.
 
 ## M3 — Challenge engine/UI
 
-- [ ] **T0301** Implement challenge modes and duration config.  
+- [x] **T0301** Implement challenge modes and duration config.  
       Requirements: BR-009.
-- [ ] **T0302** Implement explicit challenge start with authoritative `startedAt`, `deadlineAt`, and `durationMs`.  
+- [x] **T0302** Implement explicit challenge start with authoritative `startedAt`, `deadlineAt`, and `durationMs`.  
       Requirements: BR-009, BR-010.
-- [ ] **T0303** Implement `max(0, deadlineAt - Date.now())` clock reconciliation and reject-late-command rule; UI timers are repaint-only.  
+- [x] **T0303** Implement `max(0, deadlineAt - Date.now())` clock reconciliation and reject-late-command rule; UI timers are repaint-only.  
       Requirements: BR-010.
-- [ ] **T0304** Connect Web visibility/page/route lifecycle reconciliation.  
+- [x] **T0304** Connect Web visibility/page/route lifecycle reconciliation.  
       Requirements: BR-010, BR-020.
-- [ ] **T0305** Connect WeChat foreground/background/page lifecycle reconciliation.  
+- [x] **T0305** Connect WeChat foreground/background/page lifecycle reconciliation.  
       Requirements: BR-010, BR-021.
-- [ ] **T0306** Implement timeout result freeze.  
+- [x] **T0306** Implement timeout result freeze.  
       Requirements: BR-009.
-- [ ] **T0307** Implement early exact-zero completion/elapsed time.  
+- [x] **T0307** Implement early exact-zero completion/elapsed time.  
       Requirements: BR-011.
-- [ ] **T0308** Implement pure challenge-result derivation, including deterministic `actualDurationMs`, completion/expiry state, and frozen/read-only flags. The UI and record responsibilities formerly included here are split into T0311 and T0312.  
+- [x] **T0308** Implement pure challenge-result derivation, including deterministic `actualDurationMs`, completion/expiry state, and frozen/read-only flags. The UI and record responsibilities formerly included here are split into T0311 and T0312.  
       Requirements: BR-013.  
       Dependencies: T0110, T0114, T0306, T0307.
-- [ ] **T0309** Unit-test boundary timestamps at deadline−1/deadline/deadline+1.  
+- [x] **T0309** Unit-test boundary timestamps at deadline−1/deadline/deadline+1.  
       Requirements: BR-010, BR-011.
-- [ ] **T0310** Cross-platform smoke test background/return behavior.  
+- [x] **T0310** Cross-platform smoke test background/return behavior.  
       Requirements: BR-022.
-- [ ] **T0311** Build the challenge result page and read-only return-to-products experience for early-clear and expired runs.  
+- [x] **T0311** Build the challenge result page and read-only return-to-products experience for early-clear and expired runs.  
       Requirements: BR-009, BR-011, BR-013.  
       Dependencies: T0308, T0007.
-- [ ] **T0312** Implement pure local-record candidate comparison using exact `totalSpent`, millisecond `actualDurationMs`, and preserve-existing-on-tie rules.  
+- [x] **T0312** Implement pure local-record candidate comparison using exact `totalSpent`, millisecond `actualDurationMs`, and preserve-existing-on-tie rules.  
       Requirements: BR-017.  
       Dependencies: T0308.
-- [ ] **T0313** Unit-test local-record comparison: higher/lower/equal spent and faster/slower/equal exact-zero duration.  
+- [x] **T0313** Unit-test local-record comparison: higher/lower/equal spent and faster/slower/equal exact-zero duration.  
       Requirements: BR-017.  
       Dependencies: T0312.
-- [ ] **T0314** Add challenge domain tests for normal countdown, early clear, natural timeout, long-background reconciliation, route return, and late-command rejection.  
+- [x] **T0314** Add challenge domain tests for normal countdown, early clear, natural timeout, long-background reconciliation, route return, and late-command rejection.  
       Requirements: BR-009, BR-010, BR-011, BR-022.  
       Dependencies: T0302, T0303, T0306, T0307, T0308.
+
+T0301–T0314 completion evidence is recorded in `docs/engineering/architecture.md` §17.4. Shared challenge timing, deadline-boundary commands, lifecycle reconciliation, result freezing, challenge achievements, and record comparison have automated coverage. Microsoft Edge production smoke passed for a real 30-second run, a roughly 10-second background interval, and backgrounding through expiry. The WeChat lifecycle adapter shares the same timestamp reconciler and compiles successfully; detailed Developer Tools/real-device lifecycle acceptance remains owned by T0415/T0613 because the installed IDE service port is disabled.
 
 ## M4 — Achievement persistence, UI, and local persistence
 

@@ -2,12 +2,14 @@ import { PRODUCT_BY_ID } from '../data/products'
 import type { AchievementId } from './achievement-types'
 import type { DomainCommandKind, DomainTransitionEvent } from './achievement-events'
 import { calculateNewAchievementUnlocks } from './achievements'
+import { reconcileChallengeTime, type ChallengeReconciliation } from './challenge'
 import type { ProductDefinition } from './catalog'
-import { domainFailure, domainSuccess, type DomainResult } from './errors'
+import { domainFailure, domainSuccess, type DomainError, type DomainResult } from './errors'
 import {
   deriveRunTotals,
   getProductQuantity,
   getProductUnitPriceUsd,
+  isChallengeMode,
   type RunState,
 } from './game-state'
 import {
@@ -36,18 +38,33 @@ export interface AppliedTransition {
   readonly changed: boolean
 }
 
-export type CommandResult = DomainResult<AppliedTransition>
+export interface ReconciledCommandFailure {
+  readonly ok: false
+  readonly error: DomainError
+  readonly reconciliation: ChallengeReconciliation
+}
+
+export type CommandResult = DomainResult<AppliedTransition> | ReconciledCommandFailure
 
 function ensureCommandCanRun(
   state: RunState,
   productId: string,
   timestamp: number,
-): DomainResult<ProductDefinition> {
+): DomainResult<ProductDefinition> | ReconciledCommandFailure {
   if (state.status === 'completed' || state.status === 'expired') {
     return domainFailure('GAME_ALREADY_COMPLETED', productId)
   }
   if (state.status !== 'active') return domainFailure('GAME_NOT_ACTIVE', productId)
   if (!isNonNegativeSafeInteger(timestamp)) return domainFailure('INVALID_TIMESTAMP', productId)
+  const reconciliation = reconcileChallengeTime(state, timestamp)
+  if (!reconciliation.ok) return domainFailure(reconciliation.error.code, productId)
+  if (reconciliation.value.changed) {
+    return {
+      ok: false,
+      error: { code: 'CHALLENGE_EXPIRED', productId },
+      reconciliation: reconciliation.value,
+    }
+  }
   const product = PRODUCT_BY_ID.get(productId)
   return product === undefined
     ? domainFailure('UNKNOWN_PRODUCT', productId)
@@ -116,7 +133,7 @@ function applyTargetQuantity(
     balanceBeforeUsd: beforeTotals.remainingBalanceUsd,
     balanceAfterUsd,
     timestamp,
-    challengeOutcome: null,
+    challengeOutcome: completed && isChallengeMode(state.mode) ? 'cleared-before-deadline' : null,
   }
   const newlyUnlockedAchievementIds = changed
     ? calculateNewAchievementUnlocks(

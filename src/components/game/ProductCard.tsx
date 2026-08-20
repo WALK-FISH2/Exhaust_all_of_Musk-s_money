@@ -36,7 +36,7 @@ function ProductCardComponent({
   }
 
   return (
-    <View id={`product-${product.id}`} className='product-card'>
+    <View id={`product-${product.id}`} className='product-card product-card--compact-mobile'>
       <View className={`product-card__visual product-card__visual--${product.categoryId}`}>
         <Text className='product-card__emoji'>{CATEGORY_EMOJI[product.categoryId]}</Text>
         <Text className='product-card__kind'>{product.kind}</Text>
@@ -90,14 +90,10 @@ function ProductCardComponent({
             {M2_COPY.max}
           </Button>
         </View>
-        <View className='product-card__summary'>
-          <Text>
-            {M2_COPY.owned} {formatIntegerWithGrouping(quantity)}
-          </Text>
-          <Text>
-            {M2_COPY.perRunCap} {formatIntegerWithGrouping(product.maxQuantityPerRun)}
-          </Text>
-        </View>
+        <Text className='product-card__summary'>
+          {M2_COPY.owned} {formatIntegerWithGrouping(quantity)} · {M2_COPY.perRunCap}{' '}
+          {formatIntegerWithGrouping(product.maxQuantityPerRun)}
+        </Text>
         <View className='product-card__subtotal'>
           <Text>{M2_COPY.subtotal}</Text>
           <Text>{formatUsd(subtotalUsd)}</Text>

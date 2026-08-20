@@ -1,10 +1,24 @@
 import { defineConfig, type UserConfigExport } from '@tarojs/cli'
+import type { Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 import devConfig from './dev'
 import prodConfig from './prod'
 
 const isH5 = process.env.TARO_ENV === 'h5'
+
+const taroRootFontScriptPattern =
+  /<script>!function\(n\)\{function f\(\)\{[\s\S]*?document\.documentElement[\s\S]*?style\.fontSize[\s\S]*?setTimeout\(f,500\)[\s\S]*?<\/script>\s*/
+
+const h5CssPixelTemplatePlugin: Plugin = {
+  name: 'h5-css-pixel-template',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html) {
+      return html.replace(taroRootFontScriptPattern, '')
+    },
+  },
+}
 
 const pwaPlugin = VitePWA({
   strategies: 'injectManifest',
@@ -72,7 +86,7 @@ const config: UserConfigExport<'vite'> = {
   framework: 'react',
   compiler: {
     type: 'vite',
-    vitePlugins: isH5 ? [pwaPlugin] : [],
+    vitePlugins: isH5 ? [h5CssPixelTemplatePlugin, pwaPlugin] : [],
   },
   cache: {
     enable: false,
@@ -89,6 +103,10 @@ const config: UserConfigExport<'vite'> = {
     publicPath: '/',
     staticDirectory: 'static',
     postcss: {
+      pxtransform: {
+        enable: false,
+        config: {},
+      },
       autoprefixer: {
         enable: true,
         config: {},

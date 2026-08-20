@@ -5,6 +5,8 @@ import {
   deriveRunTotals,
   getProductQuantity,
   getProductUnitPriceUsd,
+  isChallengeMode,
+  type ChallengeMode,
   type RunState,
 } from './game-state'
 import { addUsd, multiplyUsd } from './money'
@@ -28,6 +30,16 @@ export interface RunResultMetrics {
   readonly distinctProductCount: number
   readonly categoriesTouched: readonly string[]
   readonly highestSubtotalLine: ResultLine | null
+}
+
+export interface ChallengeRunResult {
+  readonly metrics: RunResultMetrics & { readonly mode: ChallengeMode }
+  readonly outcome: 'cleared-before-deadline' | 'expired'
+  readonly durationMs: number
+  readonly actualDurationMs: number
+  readonly exactZeroClear: boolean
+  readonly isFrozen: true
+  readonly canPurchase: false
 }
 
 function isHigherPriorityLine(candidate: ResultLine, current: ResultLine): boolean {
@@ -83,5 +95,25 @@ export function deriveResultMetrics(
       (category) => category.id,
     ),
     highestSubtotalLine,
+  }
+}
+
+export function deriveChallengeResult(state: RunState): ChallengeRunResult | null {
+  if (!isChallengeMode(state.mode)) return null
+  if (state.status !== 'completed' && state.status !== 'expired') return null
+  if (state.startedAt === null || state.durationMs === null || state.completedAt === null) {
+    return null
+  }
+
+  const metrics = deriveResultMetrics(state) as RunResultMetrics & { readonly mode: ChallengeMode }
+  const exactZeroClear = state.status === 'completed' && metrics.remainingBalanceUsd === 0
+  return {
+    metrics,
+    outcome: exactZeroClear ? 'cleared-before-deadline' : 'expired',
+    durationMs: state.durationMs,
+    actualDurationMs: exactZeroClear ? state.completedAt - state.startedAt : state.durationMs,
+    exactZeroClear,
+    isFrozen: true,
+    canPurchase: false,
   }
 }
