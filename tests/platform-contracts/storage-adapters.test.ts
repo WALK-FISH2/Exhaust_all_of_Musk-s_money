@@ -6,6 +6,8 @@ import {
   type TaroStorageApi,
 } from '../../src/storage/adapters/taro-storage'
 import { runM0StorageProbe } from '../../src/storage/m0-storage-probe'
+import { GameStorageRepository } from '../../src/storage/repository'
+import { createEmptyPersistedGameData } from '../../src/storage/schema'
 import type { StorageAdapter } from '../../src/storage/storage-adapter'
 
 class MemoryWebStorage implements WebStorageLike {
@@ -57,5 +59,14 @@ describe.each(adapterFactories)('%s', (_adapterName, createAdapter) => {
       passed: true,
       completedSteps: ['cleanup-before', 'missing-read', 'set', 'get-json', 'overwrite', 'remove'],
     })
+  })
+
+  it('supports the same formal repository document contract', async () => {
+    const repository = new GameStorageRepository(createAdapter())
+    const document = createEmptyPersistedGameData()
+    expect(await repository.save(document)).toEqual({ ok: true })
+    expect(await repository.load()).toMatchObject({ status: 'loaded', data: document })
+    expect(await repository.clear()).toEqual({ ok: true })
+    expect(await repository.load()).toMatchObject({ status: 'empty', data: null })
   })
 })

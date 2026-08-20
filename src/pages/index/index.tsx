@@ -8,6 +8,8 @@ import { ChallengeStatus } from '../../components/game/ChallengeStatus'
 import { AchievementFeedback, FeedbackBanner } from '../../components/game/FeedbackOverlays'
 import { FreeModeResult } from '../../components/game/FreeModeResult'
 import { ProductCard } from '../../components/game/ProductCard'
+import { ClearDataDialog, RestoreDialog } from '../../components/game/PersistenceDialogs'
+import { ProgressOverview } from '../../components/game/ProgressOverview'
 import { ReceiptPanel } from '../../components/game/ReceiptPanel'
 import { RestartDialog } from '../../components/game/RestartDialog'
 import { ACHIEVEMENT_DEFINITIONS } from '../../data/achievements'
@@ -15,6 +17,7 @@ import { useFreeModeGame } from '../../hooks/use-free-mode-game'
 import { isChallengeMode } from '../../domain/game-state'
 import { DOMAIN_ERROR_COPY, M2_COPY, UI_NOTICE_COPY } from '../../i18n/m2'
 import { M3_COPY } from '../../i18n/m3'
+import { M4_COPY } from '../../i18n/m4'
 
 import './index.scss'
 
@@ -23,12 +26,22 @@ const ACHIEVEMENT_NAMES_BY_ID: Readonly<Record<string, string>> = Object.fromEnt
 )
 
 export default function IndexPage(): JSX.Element {
-  const { state, viewModel, actions } = useFreeModeGame()
-  const feedbackMessage = state.errorCode
-    ? DOMAIN_ERROR_COPY[state.errorCode]
-    : state.noticeCode
-      ? UI_NOTICE_COPY[state.noticeCode]
-      : null
+  const { state, viewModel, hydrationStatus, persistenceMessage, actions } = useFreeModeGame()
+  if (hydrationStatus === 'loading') {
+    return (
+      <View id='hydration-loading' className='hydration-loading'>
+        <Text>{M4_COPY.hydration}</Text>
+      </View>
+    )
+  }
+
+  const feedbackMessage =
+    persistenceMessage ??
+    (state.errorCode
+      ? DOMAIN_ERROR_COPY[state.errorCode]
+      : state.noticeCode
+        ? UI_NOTICE_COPY[state.noticeCode]
+        : null)
 
   return (
     <View className='game-page'>
@@ -59,6 +72,9 @@ export default function IndexPage(): JSX.Element {
             onShowProducts={actions.showProducts}
             challengeResult={viewModel.challengeResult}
             onChangeChallenge={actions.openModePicker}
+            lifetimeAchievementCount={viewModel.lifetimeAchievementCount}
+            totalAchievementCount={viewModel.totalAchievementCount}
+            beatenRecordKinds={state.beatenRecordKinds}
           />
         ) : (
           <>
@@ -131,10 +147,20 @@ export default function IndexPage(): JSX.Element {
           </>
         )}
 
+        <ProgressOverview
+          lifetimeAchievementIds={state.lifetimeAchievementIds}
+          records={state.records}
+          currentMode={state.run.mode}
+          onRequestClearData={actions.requestClearData}
+        />
+
         <Text className='game-footer'>{M2_COPY.disclaimer}</Text>
       </View>
 
-      <FeedbackBanner message={feedbackMessage} onDismiss={actions.dismissFeedback} />
+      <FeedbackBanner
+        message={feedbackMessage}
+        onDismiss={persistenceMessage ? actions.dismissPersistenceMessage : actions.dismissFeedback}
+      />
       <AchievementFeedback
         achievementIds={state.achievementNotifications}
         namesById={ACHIEVEMENT_NAMES_BY_ID}
@@ -150,6 +176,16 @@ export default function IndexPage(): JSX.Element {
         currentMode={state.run.mode}
         onClose={actions.closeModePicker}
         onSelectMode={actions.selectMode}
+      />
+      <RestoreDialog
+        open={state.restorePromptOpen}
+        onContinue={actions.continueRestoredRun}
+        onRestart={actions.restartRestoredRun}
+      />
+      <ClearDataDialog
+        open={state.clearDataConfirmationOpen}
+        onCancel={actions.cancelClearData}
+        onConfirm={actions.confirmClearData}
       />
     </View>
   )

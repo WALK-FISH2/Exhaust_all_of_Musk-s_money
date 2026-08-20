@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import {
   createFreeModeUiState,
   deriveFreeModeViewModel,
   freeModeReducer,
 } from '../application/free-mode-controller'
+import { createPersistedGameData, hydratePersistedGame } from '../application/game-persistence'
 import { isChallengeMode, type RunMode } from '../domain/game-state'
 import { SYSTEM_CLOCK, type Clock } from '../platform/clock'
+import { createPlatformStorageAdapter } from '../platform/create-storage-adapter'
 import { useRunLifecycle } from '../platform/use-run-lifecycle'
+import { GameStorageRepository } from '../storage/repository'
 
 function createRunIdentity(
   sequence: number,
@@ -23,11 +26,90 @@ function createRunIdentity(
 
 export function useFreeModeGame(clock: Clock = SYSTEM_CLOCK) {
   const sequence = useRef(1)
+  const repository = useMemo(() => new GameStorageRepository(createPlatformStorageAdapter()), [])
+  const [hydrationStatus, setHydrationStatus] = useState<'loading' | 'ready'>('loading')
+  const [persistenceMessage, setPersistenceMessage] = useState<string | null>(null)
+  const [persistenceWritable, setPersistenceWritable] = useState(true)
+  const lastSavedRevision = useRef(0)
+  const suspendAutosave = useRef(false)
   const [state, dispatch] = useReducer(freeModeReducer, undefined, () => {
     const identity = createRunIdentity(sequence.current, 'free', clock)
     return createFreeModeUiState(identity.runId, identity.timestamp)
   })
+  const initialRun = useRef(state.run)
   const viewModel = useMemo(() => deriveFreeModeViewModel(state), [state])
+  const { run, lifetimeAchievementIds, records, preferences } = state
+  const persistenceDocument = useMemo(
+    () => createPersistedGameData({ run, lifetimeAchievementIds, records, preferences }),
+    [lifetimeAchievementIds, preferences, records, run],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    void repository.load().then((loaded) => {
+      if (cancelled) return
+      setPersistenceWritable(loaded.writable)
+      if (loaded.data !== null) {
+        const progress = hydratePersistedGame(loaded.data, initialRun.current, clock.now())
+        dispatch({
+          type: 'hydrate',
+          progress: {
+            ...progress,
+            requiresSave:
+              progress.requiresSave ||
+              loaded.status === 'recovered' ||
+              loaded.status === 'migrated',
+          },
+        })
+      }
+      if (loaded.status === 'recovered' || loaded.status === 'corrupt-json') {
+        setPersistenceMessage('本地存档有异常，已安全恢复可用数据。')
+      } else if (loaded.status === 'invalid-data' || loaded.status === 'unsupported-version') {
+        setPersistenceMessage('本地存档无法安全读取，已进入新的临时游戏。')
+      } else if (loaded.status === 'future-version') {
+        setPersistenceMessage('本地存档来自较新版本，本次游戏不会覆盖它。')
+      } else if (loaded.status === 'storage-error') {
+        setPersistenceMessage('暂时无法读取本地存档，本次游戏不会覆盖它。')
+      } else if (loaded.status === 'migrated') {
+        setPersistenceMessage('本地存档已安全升级。')
+      }
+      setHydrationStatus('ready')
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [clock, repository])
+
+  useEffect(() => {
+    if (
+      hydrationStatus !== 'ready' ||
+      !persistenceWritable ||
+      suspendAutosave.current ||
+      state.persistenceRevision <= lastSavedRevision.current
+    ) {
+      return undefined
+    }
+
+    const revision = state.persistenceRevision
+    const document = persistenceDocument
+    const timer = setTimeout(() => {
+      if (suspendAutosave.current) return
+      void repository.save(document).then((result) => {
+        if (result.ok) {
+          lastSavedRevision.current = Math.max(lastSavedRevision.current, revision)
+          return
+        }
+        setPersistenceMessage('本地保存失败，当前游戏仍可继续。')
+      })
+    }, 80)
+    return () => clearTimeout(timer)
+  }, [
+    hydrationStatus,
+    persistenceDocument,
+    persistenceWritable,
+    repository,
+    state.persistenceRevision,
+  ])
 
   const nextRunIdentity = useCallback(
     (mode: RunMode) => {
@@ -52,6 +134,8 @@ export function useFreeModeGame(clock: Clock = SYSTEM_CLOCK) {
   return {
     state,
     viewModel,
+    hydrationStatus,
+    persistenceMessage,
     actions: {
       increment: useCallback(
         (productId: string) => dispatch({ type: 'increment', productId, timestamp: clock.now() }),
@@ -107,6 +191,28 @@ export function useFreeModeGame(clock: Clock = SYSTEM_CLOCK) {
         () => dispatch({ type: 'start-challenge', timestamp: clock.now() }),
         [clock],
       ),
+      continueRestoredRun: useCallback(() => dispatch({ type: 'continue-restored-run' }), []),
+      restartRestoredRun: useCallback(() => {
+        dispatch({ type: 'restart-restored-run', ...nextRunIdentity(state.run.mode) })
+      }, [nextRunIdentity, state.run.mode]),
+      requestClearData: useCallback(() => dispatch({ type: 'request-clear-data' }), []),
+      cancelClearData: useCallback(() => dispatch({ type: 'cancel-clear-data' }), []),
+      confirmClearData: useCallback(() => {
+        suspendAutosave.current = true
+        void repository.clear().then((result) => {
+          if (!result.ok) {
+            suspendAutosave.current = false
+            setPersistenceMessage('清除本地数据失败，请稍后再试。')
+            return
+          }
+          lastSavedRevision.current = 0
+          setPersistenceWritable(true)
+          setPersistenceMessage('本地游戏数据已清除。')
+          dispatch({ type: 'clear-local-data', ...nextRunIdentity('free') })
+          suspendAutosave.current = false
+        })
+      }, [nextRunIdentity, repository]),
+      dismissPersistenceMessage: useCallback(() => setPersistenceMessage(null), []),
     },
   }
 }

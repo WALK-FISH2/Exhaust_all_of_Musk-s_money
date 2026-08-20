@@ -1,8 +1,8 @@
 # Tasks — Spend_Musk_Money
 
 > Status: Active task backlog  
-> Version: 1.4  
-> Date: 2026-08-18
+> Version: 1.5  
+> Date: 2026-08-20
 
 Task IDs are stable references. Do not renumber completed tasks.
 
@@ -142,48 +142,50 @@ T0301–T0314 completion evidence is recorded in `docs/engineering/architecture.
 
 T0401 and T0402 retain their stable IDs but are executed in M1; they are listed only once in the M1 section.
 
-- [ ] **T0403** Implement atomic lifetime/run unlock recording in persisted state.  
+- [x] **T0403** Implement atomic lifetime/run unlock recording in persisted state.  
       Requirements: BR-015.  
       Dependencies: T0114, T0406, T0414.
-- [ ] **T0404** Build achievement toast/queue UI.  
+- [x] **T0404** Build achievement toast/queue UI.  
       Requirements: BR-014, BR-015.  
       Dependencies: T0403.
-- [ ] **T0405** Build achievement overview, lifetime progress, and unlock-history UI.  
+- [x] **T0405** Build achievement overview, lifetime progress, and unlock-history UI.  
       Requirements: BR-014, BR-015.  
       Dependencies: T0403, T0007.
-- [ ] **T0406** Define the versioned persistence envelope and schemas only. Validation, migration orchestration, and repository behavior are split into T0413 and T0414.  
+- [x] **T0406** Define the versioned persistence envelope and schemas only. Validation, migration orchestration, and repository behavior are split into T0413 and T0414.  
       Requirements: NFR-005.  
       Dependencies: T0103, T0401.
-- [ ] **T0407** Implement autosave after meaningful mutations.  
+- [x] **T0407** Implement autosave after meaningful mutations.  
       Requirements: BR-016.  
       Dependencies: T0414.
-- [ ] **T0408** Implement startup restore choice for valid unfinished runs.  
+- [x] **T0408** Implement startup restore choice for valid unfinished runs.  
       Requirements: BR-016.  
       Dependencies: T0414.
-- [ ] **T0409** Implement expired-challenge restoration directly to frozen results with `actualDurationMs = durationMs`.  
+- [x] **T0409** Implement expired-challenge restoration directly to frozen results with `actualDurationMs = durationMs`.  
       Requirements: BR-010, BR-013, BR-016.  
       Dependencies: T0308, T0408.
-- [ ] **T0410** Persist local best records using the pure T0312 comparator.  
+- [x] **T0410** Persist local best records using the pure T0312 comparator.  
       Requirements: BR-017.  
       Dependencies: T0312, T0414.
-- [ ] **T0411** Implement clear-local-data confirmation.  
+- [x] **T0411** Implement clear-local-data confirmation.  
       Requirements: BR-015, NFR-006.  
       Dependencies: T0414.
-- [ ] **T0412** Add persistence corruption and migration tests.  
+- [x] **T0412** Add persistence corruption and migration tests.  
       Requirements: NFR-005.  
       Dependencies: T0413, T0414.
-- [ ] **T0413** Implement persisted-data validation and sequential schema/catalog migration orchestration.  
+- [x] **T0413** Implement persisted-data validation and sequential schema/catalog migration orchestration.  
       Requirements: BR-016, NFR-005.  
       Dependencies: T0406.
-- [ ] **T0414** Implement the storage repository read/write/remove flow, recoverable-corruption handling, and adapter error boundaries.  
+- [x] **T0414** Implement the storage repository read/write/remove flow, recoverable-corruption handling, and adapter error boundaries.  
       Requirements: BR-016, NFR-005, NFR-006.  
       Dependencies: T0004, T0406, T0413.
-- [ ] **T0415** Add challenge lifecycle/restore integration tests covering browser background, Mini Program background, long return, route return, process termination, expired-save restoration, and deadline-boundary purchases.  
+- [x] **T0415** Add challenge lifecycle/restore integration tests covering browser background, Mini Program background, long return, route return, process termination, expired-save restoration, and deadline-boundary purchases.  
       Requirements: BR-010, BR-016, BR-021, BR-022.  
       Dependencies: T0304, T0305, T0308, T0309, T0314, T0407, T0408, T0409.
-- [ ] **T0416** Add Free Mode autosave/restore integration tests, including completed/frozen state and starting a new run.  
+- [x] **T0416** Add Free Mode autosave/restore integration tests, including completed/frozen state and starting a new run.  
       Requirements: BR-008, BR-016.  
       Dependencies: T0117, T0407, T0408.
+
+T0403–T0416 completion evidence is recorded in `docs/engineering/architecture.md` §17.5. The formal versioned repository, migration/recovery rules, hydration gate and restore choice, meaningful-mutation autosave, permanent achievement overview/history, duration-isolated records, and confirmed local-data clearing have automated coverage. Microsoft Edge production smoke passed active and frozen Free restoration, deadline-preserving and expired Challenge restoration, lifetime/record persistence, and zero Console errors. The WeChat target and Taro Storage contract pass; Developer Tools/real-device lifecycle acceptance remains owned by T0613 because the installed IDE service port is disabled.
 
 ## M5 — UX, accessibility, PWA
 

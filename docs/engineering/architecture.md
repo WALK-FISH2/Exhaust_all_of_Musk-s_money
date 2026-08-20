@@ -1,7 +1,7 @@
 # Architecture — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.8  
+> Version: 1.9  
 > Date: 2026-08-20  
 > Parent: `spec.md`
 
@@ -269,6 +269,8 @@ H5 and WeChat provide platform adapters. Domain code cannot import browser `loca
 
 M0 implements this contract with an H5 `localStorage` adapter and an async Taro Storage adapter selected in the platform layer. A platform-neutral M0 repository serializes only the disposable `m0-storage-test` record; it is not the v1 save schema. Both adapters run through the same contract probe for missing reads, set/get, JSON parsing, overwrite, and removal.
 
+M4 promotes the same adapter contract into the formal `GameStorageRepository`. The repository owns the single stable root key `spend-musk-money:game-data`, serializes exactly one `PersistedGameDataV1` document, queues writes in order, and exposes controlled read/write/remove results instead of leaking platform exceptions into React or Domain code. H5 and WeChat therefore share repository, validation, migration, recovery, and game-progress behavior; only the adapter implementation is platform-specific.
+
 ### 9.3 Migration
 
 Read flow:
@@ -276,6 +278,20 @@ Read flow:
 `raw → parse → validate version → migrate sequentially → validate current schema → use`
 
 Invalid active-run data may be dropped without deleting valid lifetime records when separation is possible.
+
+M4 implements separate sequential registries for schema and catalog migrations. The internal pre-release schema-0 fixture migrates to schema 1 by adding default preferences; it is test coverage for the migration mechanism and is not presented as a previously released public save format. Catalog version 2 is the first formal persisted catalog version, so no earlier released catalog migration is registered.
+
+Untrusted input is validated before it reaches application state. Invalid/unknown product quantities, unsafe integers, missing authoritative price snapshots, invalid challenge timestamps, malformed records, and unknown achievement IDs are rejected or recovered at the smallest safe boundary. Valid lifetime achievements, records, and preferences survive when an invalid active run can be isolated. Corrupt JSON and adapter failures produce controlled statuses. A save from a future schema or catalog version is never overwritten by the older client unless the user explicitly confirms clearing all local data.
+
+### 9.4 Hydration, autosave, and durable progress
+
+- The page renders a hydration gate until repository loading finishes, preventing a fresh `$400B` run from flashing before a saved run is resolved.
+- A valid unfinished Free or Challenge run opens an explicit `继续上次游戏` / `重新开始` choice. Restarting preserves lifetime achievements, local records, and preferences.
+- Challenge hydration reconciles `deadlineAt` against the injected current clock before the run becomes interactive. An active run keeps its original deadline; a run found beyond that deadline is frozen with `actualDurationMs = durationMs`. Completed and expired saves open their stable result directly.
+- Autosave is debounced after authoritative game/progress/preferences revisions only. The 200 ms challenge repaint interval never creates storage writes.
+- Per-run achievements continue to drive the run UI, while first-time IDs are appended atomically to ordered lifetime history. Starting a new run clears only per-run state.
+- Challenge records are stored independently for 30, 60, and 300 seconds. Highest spend and fastest exact-zero clear reuse the strict M3 comparators, so ties preserve the existing record.
+- Clearing local data requires confirmation and removes the entire root document before resetting current, lifetime, record, and preference state.
 
 ## 10. Catalog-version handling
 
@@ -453,3 +469,14 @@ If the PWA build pipeline differs from the preferred plugin, update this archite
 - 204 tests pass across 18 files. Typecheck, ESLint, Prettier, H5 build, WeChat build, and PWA artifact/layout checks pass. The same challenge Domain and lifecycle reconciliation source compiles to `dist/h5/` and `dist/weapp/`.
 - Microsoft Edge production smoke passed a real 30-second natural timeout with a purchase, frozen read-only return and result actions; a separate 30-second run backgrounded in another tab for about 10.2 seconds reconciled from `00:30` to `00:19`; and another 30-second run backgrounded through its deadline returned directly to the timeout result with `actualDurationMs = 30,000`. Edge reported no application console errors.
 - The installed WeChat Developer Tools remains unable to accept CLI smoke commands because its IDE service port is disabled. M3 did not change that user security setting. The WeChat build and shared/adaptor automated coverage pass; detailed Developer Tools and real-device background/foreground acceptance remains assigned to T0415/T0613 and is not claimed here.
+
+### 17.5 M4 implementation and verification status — 2026-08-20
+
+- Schema 1 / catalog 2 persistence is implemented as one versioned root document behind the formal H5 and Taro Storage adapters. Sequential migration, untrusted-data validation, recoverable corruption, future-version write protection, ordered writes, and controlled adapter failures have repository-level coverage.
+- Hydration completes before the playable UI is shown. Valid unfinished runs present an explicit continue/restart decision; completed and expired runs reopen frozen. Active challenge restoration preserves the original `deadlineAt`, and restoration after that deadline produces the configured-duration timeout result before interaction resumes.
+- Meaningful mutations autosave current run, ordered lifetime achievements, per-duration records, and preferences atomically. Timer repaint ticks do not write. Starting a new run preserves lifetime progress and records; confirmed local-data clearing resets the root document.
+- All 20 achievements appear in the permanent overview with locked/unlocked state, rule description, count, and ordered unlock history. Per-run unlock feedback remains available, while lifetime IDs are deduplicated across runs and reloads.
+- Challenge 30/60/300 records are isolated by duration. Strictly higher spending and strictly faster exact-zero completion replace prior values; equal values and regressions preserve the existing record. New-record UI appears only for a strict improvement.
+- Persistence and restore coverage includes Free active/completed/new-run flows, challenge active/expired/early-completed flows, process-style reopen, corrupt JSON, partial active-run recovery, schema migration, unknown/duplicate IDs, future schema/catalog protection, price-snapshot authority, adapter failures, record ties, and clear-data confirmation. The full quality gate passes with 232 tests across 21 files, followed by successful H5, WeChat, and PWA production builds.
+- Microsoft Edge production smoke passed purchase → full reload → continue, completed Free reload/freeze, active Challenge reload without deadline reset, closing the page across a 30-second deadline, immediate expired result with `30.00` seconds, permanent achievement retention, record retention after another reload, and confirmed local-data reset. Edge reported zero application Console errors.
+- The WeChat production target and formal Taro Storage repository contract pass. The installed WeChat Developer Tools IDE service port remains disabled, so tool-runtime and real-device lifecycle acceptance is not claimed here and remains assigned to T0613.

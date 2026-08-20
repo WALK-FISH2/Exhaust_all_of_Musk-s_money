@@ -2,6 +2,7 @@ import { CATEGORIES } from '../data/categories'
 import { ACHIEVEMENT_DEFINITIONS } from '../data/achievements'
 import { getChallengeDurationMs } from '../data/challenges'
 import { PRODUCTS } from '../data/products'
+import { updatePersistentProgressForRun, type HydratedGameProgress } from './game-persistence'
 import type { AchievementId } from '../domain/achievement-types'
 import {
   deriveRemainingChallengeMs,
@@ -28,6 +29,7 @@ import {
   type RunState,
 } from '../domain/game-state'
 import { multiplyUsd } from '../domain/money'
+import { createEmptyLocalRecords, type LocalRecords } from '../domain/records'
 import { deriveReceipt, type Receipt } from '../domain/receipt'
 import {
   deriveChallengeResult,
@@ -35,6 +37,7 @@ import {
   type ChallengeRunResult,
   type RunResultMetrics,
 } from '../domain/results'
+import { createDefaultPreferences, type Preferences } from '../storage/schema'
 
 export type FreeModeView = 'products' | 'result'
 export type UiNoticeCode = 'QUANTITY_CLAMPED' | 'MAX_NO_CHANGE'
@@ -51,6 +54,13 @@ export interface FreeModeUiState {
   readonly observedNowMs: number
   readonly modePickerOpen: boolean
   readonly pendingMode: RunMode | null
+  readonly lifetimeAchievementIds: readonly AchievementId[]
+  readonly records: LocalRecords
+  readonly preferences: Preferences
+  readonly beatenRecordKinds: readonly ('highest-spending' | 'fastest-clear')[]
+  readonly restorePromptOpen: boolean
+  readonly clearDataConfirmationOpen: boolean
+  readonly persistenceRevision: number
 }
 
 export interface ProductCardViewModel {
@@ -71,6 +81,8 @@ export interface FreeModeViewModel {
   readonly challengeResult: ChallengeRunResult | null
   readonly unlockedAchievementCount: number
   readonly totalAchievementCount: number
+  readonly lifetimeAchievementCount: number
+  readonly records: LocalRecords
 }
 
 export type FreeModeAction =
@@ -103,6 +115,12 @@ export type FreeModeAction =
     }
   | { readonly type: 'start-challenge'; readonly timestamp: number }
   | { readonly type: 'reconcile-time'; readonly timestamp: number }
+  | { readonly type: 'hydrate'; readonly progress: HydratedGameProgress }
+  | { readonly type: 'continue-restored-run' }
+  | { readonly type: 'restart-restored-run'; readonly runId: string; readonly timestamp: number }
+  | { readonly type: 'request-clear-data' }
+  | { readonly type: 'cancel-clear-data' }
+  | { readonly type: 'clear-local-data'; readonly runId: string; readonly timestamp: number }
 
 export class FreeModeControllerError extends Error {
   readonly code = 'FREE_MODE_INITIALIZATION_FAILED' as const
@@ -128,6 +146,13 @@ function createModeUiState(mode: RunMode, runId: string, timestamp: number): Fre
     observedNowMs: timestamp,
     modePickerOpen: false,
     pendingMode: null,
+    lifetimeAchievementIds: [],
+    records: createEmptyLocalRecords(),
+    preferences: createDefaultPreferences(),
+    beatenRecordKinds: [],
+    restorePromptOpen: false,
+    clearDataConfirmationOpen: false,
+    persistenceRevision: 0,
   }
 }
 
@@ -197,11 +222,44 @@ export function deriveFreeModeViewModel(state: FreeModeUiState): FreeModeViewMod
     challengeResult: deriveChallengeResult(state.run),
     unlockedAchievementCount: state.run.runUnlockedAchievementIds.length,
     totalAchievementCount: ACHIEVEMENT_DEFINITIONS.length,
+    lifetimeAchievementCount: state.lifetimeAchievementIds.length,
+    records: state.records,
   }
 }
 
-function resetRun(mode: RunMode, runId: string, timestamp: number): FreeModeUiState {
-  return createModeUiState(mode, runId, timestamp)
+function resetRun(
+  state: FreeModeUiState,
+  mode: RunMode,
+  runId: string,
+  timestamp: number,
+): FreeModeUiState {
+  const fresh = createModeUiState(mode, runId, timestamp)
+  return {
+    ...fresh,
+    lifetimeAchievementIds: state.lifetimeAchievementIds,
+    records: state.records,
+    preferences: state.preferences,
+    persistenceRevision: state.persistenceRevision + 1,
+  }
+}
+
+function applyPersistentRunUpdate(
+  state: FreeModeUiState,
+  run: RunState,
+  runChanged: boolean,
+): Pick<
+  FreeModeUiState,
+  'run' | 'lifetimeAchievementIds' | 'records' | 'beatenRecordKinds' | 'persistenceRevision'
+> {
+  const progress = updatePersistentProgressForRun(state.lifetimeAchievementIds, state.records, run)
+  return {
+    run,
+    lifetimeAchievementIds: progress.lifetimeAchievementIds,
+    records: progress.records,
+    beatenRecordKinds: progress.beatenRecordKinds,
+    persistenceRevision:
+      runChanged || progress.changed ? state.persistenceRevision + 1 : state.persistenceRevision,
+  }
 }
 
 function applyReconciliation(
@@ -210,9 +268,10 @@ function applyReconciliation(
   timestamp: number,
   errorCode: DomainErrorCode | null = null,
 ): FreeModeUiState {
+  const persistent = applyPersistentRunUpdate(state, reconciliation.state, reconciliation.changed)
   return {
     ...state,
-    run: reconciliation.state,
+    ...persistent,
     observedNowMs: timestamp,
     view:
       reconciliation.changed && reconciliation.state.status === 'expired' ? 'result' : state.view,
@@ -243,9 +302,10 @@ function applyCommandResult(
   }
 
   const nextRun = result.value.state
+  const persistent = applyPersistentRunUpdate(state, nextRun, result.value.changed)
   return {
     ...state,
-    run: nextRun,
+    ...persistent,
     view: nextRun.status === 'completed' ? 'result' : state.view,
     observedNowMs: result.value.event.timestamp,
     errorCode: null,
@@ -314,13 +374,13 @@ export function freeModeReducer(state: FreeModeUiState, action: FreeModeAction):
     case 'request-restart':
       return deriveResultMetrics(state.run).totalSpentUsd > 0
         ? { ...state, restartConfirmationOpen: true }
-        : resetRun(state.run.mode, action.runId, action.timestamp)
+        : resetRun(state, state.run.mode, action.runId, action.timestamp)
     case 'confirm-restart': {
       const targetMode = state.pendingMode ?? state.run.mode
-      return resetRun(targetMode, action.runId, action.timestamp)
+      return resetRun(state, targetMode, action.runId, action.timestamp)
     }
     case 'play-again':
-      return resetRun(state.run.mode, action.runId, action.timestamp)
+      return resetRun(state, state.run.mode, action.runId, action.timestamp)
     case 'cancel-restart':
       return { ...state, restartConfirmationOpen: false, pendingMode: null }
     case 'show-products':
@@ -347,14 +407,14 @@ export function freeModeReducer(state: FreeModeUiState, action: FreeModeAction):
             restartConfirmationOpen: true,
             pendingMode: action.mode,
           }
-        : resetRun(action.mode, action.runId, action.timestamp)
+        : resetRun(state, action.mode, action.runId, action.timestamp)
     }
     case 'start-challenge': {
       const result = startChallenge(state.run, action.timestamp)
       return result.ok
         ? {
             ...state,
-            run: result.value,
+            ...applyPersistentRunUpdate(state, result.value, true),
             view: 'products',
             observedNowMs: action.timestamp,
             errorCode: null,
@@ -374,5 +434,40 @@ export function freeModeReducer(state: FreeModeUiState, action: FreeModeAction):
       }
       return applyReconciliation(state, result.value, action.timestamp)
     }
+    case 'hydrate':
+      return {
+        ...state,
+        run: action.progress.run,
+        selectedCategoryId: 'all',
+        searchQuery: '',
+        view: action.progress.shouldOpenResult ? 'result' : 'products',
+        restartConfirmationOpen: false,
+        errorCode: null,
+        noticeCode: null,
+        achievementNotifications: [],
+        observedNowMs: action.progress.observedNowMs,
+        modePickerOpen: false,
+        pendingMode: null,
+        lifetimeAchievementIds: action.progress.lifetimeAchievementIds,
+        records: action.progress.records,
+        preferences: action.progress.preferences,
+        beatenRecordKinds: action.progress.beatenRecordKinds,
+        restorePromptOpen: action.progress.restorePromptOpen,
+        clearDataConfirmationOpen: false,
+        persistenceRevision: action.progress.requiresSave ? 1 : 0,
+      }
+    case 'continue-restored-run':
+      return { ...state, restorePromptOpen: false }
+    case 'restart-restored-run':
+      return {
+        ...resetRun(state, state.run.mode, action.runId, action.timestamp),
+        restorePromptOpen: false,
+      }
+    case 'request-clear-data':
+      return { ...state, clearDataConfirmationOpen: true }
+    case 'cancel-clear-data':
+      return { ...state, clearDataConfirmationOpen: false }
+    case 'clear-local-data':
+      return createModeUiState('free', action.runId, action.timestamp)
   }
 }

@@ -10,6 +10,14 @@ export interface TaroStorageApi {
   removeStorage(options: { readonly key: string }): Promise<unknown>
 }
 
+function isMissingStorageError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const message = String(
+    'errMsg' in error ? error.errMsg : 'message' in error ? error.message : '',
+  ).toLowerCase()
+  return message.includes('data not found') || message.includes('not found')
+}
+
 export function createTaroStorageAdapter(api: TaroStorageApi): StorageAdapter {
   return {
     async get(key) {
@@ -19,8 +27,9 @@ export function createTaroStorageAdapter(api: TaroStorageApi): StorageAdapter {
           return null
         }
         return typeof result.data === 'string' ? result.data : JSON.stringify(result.data)
-      } catch {
-        return null
+      } catch (error) {
+        if (isMissingStorageError(error)) return null
+        throw error
       }
     },
     async set(key, value) {
@@ -29,8 +38,9 @@ export function createTaroStorageAdapter(api: TaroStorageApi): StorageAdapter {
     async remove(key) {
       try {
         await api.removeStorage({ key })
-      } catch {
+      } catch (error) {
         // Removing a missing key is intentionally idempotent in the shared contract.
+        if (!isMissingStorageError(error)) throw error
       }
     },
   }

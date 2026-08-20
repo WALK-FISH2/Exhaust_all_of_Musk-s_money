@@ -6,6 +6,7 @@ import { formatIntegerWithGrouping, formatUsd } from '../../domain/money'
 import type { ChallengeRunResult, RunResultMetrics } from '../../domain/results'
 import { M2_COPY } from '../../i18n/m2'
 import { M3_COPY } from '../../i18n/m3'
+import { M4_COPY } from '../../i18n/m4'
 
 interface FreeModeResultProps {
   readonly metrics: RunResultMetrics
@@ -15,6 +16,9 @@ interface FreeModeResultProps {
   readonly onShowProducts: () => void
   readonly challengeResult: ChallengeRunResult | null
   readonly onChangeChallenge: () => void
+  readonly lifetimeAchievementCount?: number
+  readonly totalAchievementCount?: number
+  readonly beatenRecordKinds?: readonly ('highest-spending' | 'fastest-clear')[]
 }
 
 function formatElapsedMs(durationMs: number): string {
@@ -29,6 +33,9 @@ export function FreeModeResult({
   onShowProducts,
   challengeResult,
   onChangeChallenge,
+  lifetimeAchievementCount = 0,
+  totalAchievementCount = 20,
+  beatenRecordKinds = [],
 }: FreeModeResultProps): JSX.Element {
   const highestLine = metrics.highestSubtotalLine
   const highestProduct = highestLine ? PRODUCT_BY_ID.get(highestLine.productId) : undefined
@@ -56,6 +63,18 @@ export function FreeModeResult({
             : M3_COPY.challengeExpiredSummary
           : M2_COPY.completedSummary}
       </Text>
+      {beatenRecordKinds.length > 0 ? (
+        <View id='new-record-banner' className='new-record-banner'>
+          <Text>★ {M4_COPY.newRecord}</Text>
+          <Text>
+            {beatenRecordKinds
+              .map((kind) =>
+                kind === 'highest-spending' ? M4_COPY.highestSpending : M4_COPY.fastestClear,
+              )
+              .join(' · ')}
+          </Text>
+        </View>
+      ) : null}
       <View className='result-grid'>
         <View className='result-stat result-stat--hero'>
           <Text className='result-stat__label'>{M2_COPY.wasteIndex}</Text>
@@ -115,6 +134,9 @@ export function FreeModeResult({
       </View>
       <View className='result-achievements'>
         <Text className='result-achievements__title'>{M2_COPY.achievements}</Text>
+        <Text id='result-lifetime-progress' className='result-achievements__progress'>
+          {M4_COPY.lifetimeTitle} {lifetimeAchievementCount} / {totalAchievementCount}
+        </Text>
         <View className='result-achievements__list'>
           {unlockedAchievementIds.map((id) => (
             <Text key={id} className='result-achievement'>
