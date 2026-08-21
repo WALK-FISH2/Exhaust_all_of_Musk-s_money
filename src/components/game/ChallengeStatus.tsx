@@ -31,7 +31,7 @@ export function ChallengeStatus({
   onChangeChallenge,
 }: ChallengeStatusProps): JSX.Element {
   const urgent = status === 'active' && remainingMs <= 10_000
-  const sticky = status === 'active'
+  const sticky = status === 'ready' || status === 'active'
   return (
     <View
       id='challenge-status'

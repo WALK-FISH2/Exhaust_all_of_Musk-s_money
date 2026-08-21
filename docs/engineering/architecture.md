@@ -1,7 +1,7 @@
 # Architecture — Spend_Musk_Money
 
 > Status: Active  
-> Version: 2.2  
+> Version: 2.3  
 > Date: 2026-08-21  
 > Parent: `spec.md`
 
@@ -345,17 +345,19 @@ Do not compensate for H5 first-render sizing with browser zoom, `transform: scal
 
 ### 12.2 Responsive product-card policy
 
-Product cards keep one cross-platform component tree and the same Domain callbacks at every width. Desktop/tablet presentation retains the wider two-column card layout. At viewport widths up to 820px the product grid uses two compact columns: the visual becomes a short header band, names are single-line ellipsized, USD/CNY share a price row, and the quantity summary plus subtotal remain visible. H5 retains `− / quantity / +` plus a compact full-row MAX. The WeChat build adds only a presentation class that places `− / quantity / + / MAX` in one row and gives MAX an approximately square 88rpx target; both variants invoke the same shared MAX command. At 350px and below the grid falls back to one compact column so controls do not become unusably narrow.
+Product cards keep one cross-platform component tree and the same Domain callbacks at every width. Desktop/tablet presentation retains the wider two-column card layout. At viewport widths up to 820px the product grid uses two compact columns: the visual becomes a short header band, names are single-line ellipsized, USD/CNY share a price row, and the quantity summary plus subtotal remain visible. H5 retains `− / quantity / +` plus a compact full-row MAX. The WeChat build adds only a presentation class that places `− / quantity / + / MAX` in one row, constrains and centers the quantity-input track with independent column gaps, and keeps MAX the same compact height as the increment/decrement buttons with a slightly wider target; both variants invoke the same shared MAX command. At 350px and below the grid falls back to one compact column so controls do not become unusably narrow.
 
 Responsive presentation must not introduce a second product dataset, alternate money math, or platform-specific MAX implementation. H5 build checks protect the two-column and very-narrow fallback rules; WEAPP must continue compiling the same component and styles.
 
 ### 12.4 M6 WeChat sharing and challenge-navigation policy
 
 - `platform/weapp/challenge-share.ts` is the only query serializer/parser for the approved WeChat share contract. It validates challenge mode, matching 30/60/300-second duration, and an optional bounded integer millisecond record before application state sees the route.
-- `use-challenge-sharing.ts` registers Taro's `useShareAppMessage` and `useShareTimeline` hooks and exposes the standard WeChat friend/timeline menu only while a challenge mode supplies a valid snapshot. Free Mode hides those entries. Friend and timeline payloads reuse the same snapshot; no server, account, ranking, upload, remote image, or Storage field is added.
+- The same adapter validates the progress-free `shareMode=free` landing marker. Free handlers include no challenge or progress parameters; challenge friend/timeline payloads continue to reuse one validated snapshot.
+- `use-challenge-sharing.ts` registers Taro's `useShareAppMessage` and `useShareTimeline` hooks and exposes the standard WeChat friend/timeline menu in every game mode. No server, account, ranking, upload, remote image, or Storage field is added.
 - A valid landing is applied only after hydration and reuses the existing `select-mode` transition. The resulting challenge remains `ready` with null `startedAt`, `deadlineAt`, and `durationMs`; only the existing explicit start action begins timing. The existing non-empty-run restart confirmation still guards destructive mode changes.
+- A valid Free landing also reuses `select-mode` and creates an empty Free run without importing sender state; the same non-empty-run confirmation protects recipient-local progress.
 - Shared-record display is route/UI state only. It is not added to `RunState`, local records, or the persisted schema.
-- The challenge header reuses the existing picker and mode-selection actions. Active status alone receives the sticky class; ready, completed, and expired statuses remain in normal flow. Sticky positioning is presentation-only and cannot affect deadline reconciliation.
+- The challenge header reuses the existing picker and mode-selection actions. Ready and active statuses receive the same sticky class; completed and expired remain in normal flow. CSS design tokens reserve the balance-panel block size and place Challenge Status below it as a second independent sticky region. Sticky positioning is presentation-only and cannot affect deadline reconciliation.
 
 ### 12.3 M5 presentation and accessibility policy
 
@@ -518,8 +520,10 @@ If the PWA build pipeline differs from the preferred plugin, update this archite
 ### 17.7 M6 sharing and challenge UX slice — 2026-08-21
 
 - T0620 implements the BR-026-approved WeChat friend/timeline metadata share. Both entry points carry one validated `challengeMode / duration / record` query snapshot; a valid recipient route selects the existing challenge in `ready` state, displays the optional friend record, and never starts the authoritative timer automatically.
-- T0621 changes only navigation/presentation behavior: Free Mode retains `自由模式 / 挑战模式 / 重新开始`; a challenge uses the clickable current duration, `返回自由模式`, and `重新开始`; the current-duration action opens the existing Challenge Picker. Active challenge status is sticky while ready/completed/expired remain non-sticky.
-- The WeChat ProductCard build class renders `− / quantity / + / MAX` in one compact row with an approximately square 88rpx MAX target. H5 keeps its existing desktop and compact layouts, and both targets continue to call the same Domain command callbacks.
+- T0622 extends the same native friend/timeline adapter to Free Mode. Its route is exactly `shareMode=free`, contains no sender quantities, balance, RunState, achievement, or record data, and reuses the existing mode-selection/restart-confirmation state machine to create an empty Free run. Mixed Free/challenge parameters are rejected.
+- T0621 changes only navigation/presentation behavior: Free Mode retains `自由模式 / 挑战模式 / 重新开始`; a challenge uses the clickable current duration, `返回自由模式`, and `重新开始`; the current-duration action opens the existing Challenge Picker. T0622 makes the same Challenge Status component sticky in ready and active only, below the separately sticky balance panel; completed/expired remain non-sticky and Free Mode renders no Challenge Status.
+- The WeChat ProductCard build class renders `− / quantity / + / MAX` in one compact row. MAX uses the same compact height as `− / +` with a slightly wider target, avoiding extra card height. H5 keeps its existing desktop and compact layouts, and both targets continue to call the same Domain command callbacks.
 - The Storage schema remains version 1 and catalog version 2. No Domain money, catalog, achievement, record, persistence, or challenge-timing rule changed.
-- The aggregate gate passes with 247 tests across 26 files. TypeScript, ESLint, Prettier, H5, WeChat, and PWA production builds pass; the generated WeChat page bundle contains `useShareAppMessage`, `useShareTimeline`, `showShareMenu`, the validated query keys, active-only sticky class, and inline WeChat MAX layout.
+- The aggregate gate passes with 250 tests across 26 files. TypeScript, ESLint, Prettier, H5, WeChat, and PWA production builds pass; the generated WeChat page bundle contains `useShareAppMessage`, `useShareTimeline`, `showShareMenu`, the validated Free/challenge query keys, ready/active sticky class, and separated inline WeChat quantity/MAX layout.
+- Browser measurements of the H5 production build pass at 1920×1080, 1366×768, 430×932, 390×844, and 360×800. The desktop sticky gap is 12px and the mobile gap is 10px with zero overlap; mobile ready/active status heights are both 131px, and the balance amount remains inside the balance panel in every sample.
 - This UX slice is complete, but the remaining M6 release-audit and real-device tasks are not claimed complete.

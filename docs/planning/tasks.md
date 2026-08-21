@@ -1,7 +1,7 @@
 # Tasks — Spend_Musk_Money
 
 > Status: Active task backlog  
-> Version: 1.8  
+> Version: 1.9  
 > Date: 2026-08-21
 
 Task IDs are stable references. Do not renumber completed tasks.
@@ -269,6 +269,9 @@ T0501–T0516 and T0520 completion evidence is recorded in `docs/engineering/arc
 - [x] **T0621** Refine challenge header navigation, active-only sticky status visibility, and the WeChat compact `− / quantity / + / MAX` control row without changing shared commands.  
       Requirements: BR-005, BR-009, BR-010, BR-021, BR-022, NFR-002.  
       Dependencies: T0205, T0310, T0512.
+- [x] **T0622** Extend approved WeChat friend/timeline sharing to Free Mode with progress-free new-run landing, and stack ready/active Challenge Status below the independent sticky balance panel.  
+      Requirements: BR-008, BR-009, BR-010, BR-021, BR-026, NFR-002.  
+      Dependencies: T0620, T0621.
 - [ ] **T0614** Audit money, catalog, Free Mode, receipt/result, restart, currency, search, performance, and calculation-safety evidence. This is one domain portion split from T0601.  
       Requirements: BR-001, BR-002, BR-003, BR-004, BR-005, BR-006, BR-007, BR-008, BR-012, BR-013, BR-018, BR-023, BR-027, BR-028, BR-029, NFR-001.  
       Dependencies: T0118, T0209, T0416, T0520.
@@ -277,10 +280,10 @@ T0501–T0516 and T0520 completion evidence is recorded in `docs/engineering/arc
       Dependencies: T0115, T0313, T0314, T0415.
 - [ ] **T0615** Audit platform, offline, migration, accessibility, localization, and asset evidence for BR-020–BR-022, BR-024, and NFR-002–NFR-005. This is the platform/quality portion split from T0601.  
       Requirements: BR-020, BR-021, BR-022, BR-024, NFR-002, NFR-003, NFR-004, NFR-005.  
-      Dependencies: T0007, T0412, T0505, T0506, T0511, T0516, T0602, T0603, T0604, T0605, T0607, T0611, T0613, T0620, T0621.
+      Dependencies: T0007, T0412, T0505, T0506, T0511, T0516, T0602, T0603, T0604, T0605, T0607, T0611, T0613, T0620, T0621, T0622.
 - [ ] **T0617** Audit the v1 feature boundary and verify that cloud/global/friend ranking, accounts, backend servers, online synchronization, and unapproved social sharing are absent; Deferred items remain non-v1 work.  
       Requirements: BR-026.  
-      Dependencies: T0609, T0620.
+      Dependencies: T0609, T0620, T0622.
 - [ ] **T0618** Audit privacy and local data minimization: no personal-data collection, save upload, sensitive fields, unnecessary tracking SDKs, or Storage beyond required game data.  
       Requirements: NFR-006.  
       Dependencies: T0414, T0609.

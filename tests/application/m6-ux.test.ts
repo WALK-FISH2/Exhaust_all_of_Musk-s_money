@@ -9,9 +9,10 @@ import { ChallengeStatus } from '../../src/components/game/ChallengeStatus'
 import { getProductControlLayoutClass } from '../../src/components/game/ProductCard'
 import { createEmptyLocalRecords } from '../../src/domain/records'
 import {
-  buildChallengeShareHandlers,
+  buildWeappShareHandlers,
   createChallengeShareSnapshot,
   parseChallengeShareRoute,
+  parseWeappShareRoute,
 } from '../../src/platform/weapp/challenge-share'
 import { buildRunState } from '../helpers/run-fixtures'
 
@@ -45,21 +46,65 @@ describe('M6 WeChat sharing and challenge UX', () => {
       recordMs: 12_438,
     })
 
-    const handlers = buildChallengeShareHandlers(snapshot)
+    const handlers = buildWeappShareHandlers(snapshot)
     const expectedQuery = 'challengeMode=challenge-60&duration=60&record=12438'
     expect(handlers.friend.path).toBe(`/pages/index/index?${expectedQuery}`)
     expect(handlers.timeline.query).toBe(expectedQuery)
-    expect(handlers.friend.title).toContain('好友挑战记录 12.44 秒')
+    expect(handlers.friend.title).toContain('60 秒挑战中留下了 12.44 秒的记录')
     expect(handlers.timeline.title).toBe(handlers.friend.title)
   })
 
+  it('builds a progress-free Free Mode share and lands in a new Free run', () => {
+    const records = createEmptyLocalRecords()
+    const freeRun = buildRunState({ mode: 'free', quantities: { 'lucky-sticker': 99 } })
+    expect(createChallengeShareSnapshot(freeRun, records)).toBeNull()
+
+    const handlers = buildWeappShareHandlers(null)
+    expect(handlers.friend.path).toBe('/pages/index/index?shareMode=free')
+    expect(handlers.timeline.query).toBe('shareMode=free')
+    expect(handlers.friend.title).toBe('来试试花光 4000 亿美元，你会买什么？')
+    expect(handlers.friend.path).not.toMatch(/challengeMode|duration|record|quantity|balance/i)
+
+    const landing = parseWeappShareRoute({ shareMode: 'free' })
+    expect(landing).toEqual({ kind: 'free', mode: 'free' })
+    if (landing === null) throw new Error('Expected a valid Free Mode landing')
+
+    let recipient = createFreeModeUiState('recipient-current', 1_000)
+    recipient = freeModeReducer(recipient, {
+      type: 'increment',
+      productId: 'lucky-sticker',
+      timestamp: 1_001,
+    })
+    recipient = freeModeReducer(recipient, {
+      type: 'select-mode',
+      mode: landing.mode,
+      runId: 'pending-shared-free',
+      timestamp: 2_000,
+    })
+    expect(recipient.restartConfirmationOpen).toBe(true)
+    expect(recipient.pendingMode).toBe('free')
+
+    recipient = freeModeReducer(recipient, {
+      type: 'confirm-restart',
+      runId: 'shared-free-new-run',
+      timestamp: 2_001,
+    })
+    expect(recipient.run).toMatchObject({
+      id: 'shared-free-new-run',
+      mode: 'free',
+      status: 'active',
+    })
+    expect(recipient.run.quantities).toEqual({})
+  })
+
   it('turns a valid shared challenge into the existing ready state without starting time', () => {
-    const landing = parseChallengeShareRoute({
+    const landing = parseWeappShareRoute({
       challengeMode: 'challenge-300',
       duration: '300',
       record: '287654',
     })
     expect(landing).toEqual({
+      kind: 'challenge',
       mode: 'challenge-300',
       durationSeconds: 300,
       recordMs: 287_654,
@@ -93,9 +138,16 @@ describe('M6 WeChat sharing and challenge UX', () => {
         record: '30001',
       }),
     ).toEqual({ mode: 'challenge-30', durationSeconds: 30, recordMs: null })
+    expect(
+      parseWeappShareRoute({
+        shareMode: 'free',
+        challengeMode: 'challenge-30',
+        duration: '30',
+      }),
+    ).toBeNull()
   })
 
-  it('renders the requested Free/challenge header actions and active-only sticky status', () => {
+  it('renders the requested Free/challenge header actions and ready/active sticky status', () => {
     const freeHeader = renderToStaticMarkup(
       createElement(BrandHeader, {
         mode: 'free',
@@ -136,7 +188,7 @@ describe('M6 WeChat sharing and challenge UX', () => {
     expect(ready).toContain('开始挑战')
     expect(ready).toContain('换个挑战')
     expect(ready).toContain('好友挑战记录：12.44 秒')
-    expect(ready).not.toContain('challenge-status--sticky')
+    expect(ready).toContain('challenge-status--sticky')
 
     const active = renderToStaticMarkup(
       createElement(ChallengeStatus, {
@@ -162,9 +214,33 @@ describe('M6 WeChat sharing and challenge UX', () => {
       }),
     )
     expect(completed).not.toContain('challenge-status--sticky')
+
+    const page = readFileSync('src/pages/index/index.tsx', 'utf8')
+    expect(page).toContain('{isChallengeMode(state.run.mode) ? (')
   })
 
-  it('keeps H5 controls unchanged and emits the inline square MAX WeChat layout', () => {
+  it('stacks ready/active Challenge Status below the independent sticky balance panel', () => {
+    const styles = readFileSync('src/pages/index/index.scss', 'utf8')
+    const balanceStickyBlock = styles.match(/\.balance-panel \{([\s\S]*?)\n\}/)?.[1]
+    const challengeStickyBlock = styles.match(/\.challenge-status--sticky \{([\s\S]*?)\n\}/)?.[1]
+    expect(styles).toContain('$sticky-balance-height: 180px;')
+    expect(styles).toContain('$mobile-sticky-balance-height: 230px;')
+    expect(balanceStickyBlock).toContain('position: sticky;')
+    expect(balanceStickyBlock).toContain('z-index: 30;')
+    expect(challengeStickyBlock).toContain('position: sticky;')
+    expect(challengeStickyBlock).toContain(
+      'top: $sticky-viewport-top + $sticky-balance-height + $sticky-stack-gap;',
+    )
+    expect(styles).toContain(
+      'top: $mobile-sticky-viewport-top + $mobile-sticky-balance-height + $mobile-sticky-stack-gap;',
+    )
+    expect(styles).toContain('min-height: 131px;')
+    expect(challengeStickyBlock).not.toContain('fixed')
+    expect(challengeStickyBlock).not.toContain('absolute')
+    expect(challengeStickyBlock).not.toContain('transform')
+  })
+
+  it('keeps H5 controls unchanged and emits the compact inline MAX WeChat layout', () => {
     expect(getProductControlLayoutClass('h5')).toBe('')
     expect(getProductControlLayoutClass('weapp')).toBe(' product-card--weapp-controls')
 
@@ -173,14 +249,41 @@ describe('M6 WeChat sharing and challenge UX', () => {
     expect(styles).toContain(
       '.product-card--compact-mobile.product-card--weapp-controls .product-card__control-row',
     )
-    expect(styles).toContain('grid-template-columns: 68px minmax(80px, 1fr) 68px 88px;')
+    expect(styles).toContain('grid-template-columns: 56px minmax(72px, 112px) 56px 76px;')
+    expect(styles).toContain('column-gap: 10px;')
+    expect(styles).toContain('row-gap: 0;')
+    expect(styles).toContain('margin-top: 6px;')
+    expect(styles).toContain('justify-content: center;')
     expect(styles).toContain('grid-column: auto;')
-    expect(styles).toContain('width: 88px;')
+    expect(styles).toContain('min-height: 48px;')
+    expect(styles).toContain('width: calc(100% - 16px);')
+    expect(styles).toContain('width: 76px;')
+    expect(styles).toContain('height: 48px;')
+    expect(styles).not.toContain('height: 88px;')
 
     const shareHook = readFileSync('src/platform/weapp/use-challenge-sharing.ts', 'utf8')
     expect(shareHook).toContain('Taro.useShareAppMessage')
     expect(shareHook).toContain('Taro.useShareTimeline')
     expect(shareHook).toContain("showShareItems: ['shareAppMessage', 'shareTimeline']")
-    expect(shareHook).toContain('Taro.hideShareMenu()')
+    expect(shareHook).not.toContain('Taro.hideShareMenu()')
+  })
+
+  it('keeps the WeChat quantity input and adjacent buttons separated at target widths', () => {
+    const rowWidthRpx = 56 + 112 + 56 + 76 + 10 * 3
+    const inputToIncrementGapRpx = 10 + 16 / 2
+    const incrementToMaxGapRpx = 10
+    const targetWidths = [
+      { viewportPx: 390, availableRowWidthRpx: 330 },
+      { viewportPx: 360, availableRowWidthRpx: 330 },
+      { viewportPx: 320, availableRowWidthRpx: 704 },
+    ] as const
+
+    for (const { viewportPx, availableRowWidthRpx } of targetWidths) {
+      const pxPerRpx = viewportPx / 750
+
+      expect(rowWidthRpx).toBeLessThanOrEqual(availableRowWidthRpx)
+      expect(inputToIncrementGapRpx * pxPerRpx).toBeGreaterThan(7)
+      expect(incrementToMaxGapRpx * pxPerRpx).toBeGreaterThan(4)
+    }
   })
 })

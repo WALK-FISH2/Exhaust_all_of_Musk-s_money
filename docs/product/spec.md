@@ -1,7 +1,7 @@
 # Product Specification — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.2  
+> Version: 1.3  
 > Date: 2026-08-21  
 > Parent: `requirements-baseline.md`
 
@@ -85,7 +85,7 @@ Example display:
 
 ### SPEC-012 — Sticky behavior
 
-On mobile, remaining balance and mode/timer remain visible while scrolling, using a compact sticky header after the large hero panel leaves view.
+Free Mode keeps the existing sticky balance panel and does not render Challenge Status. In challenge mode, the balance panel and the single existing Challenge Status component form two independent stacked sticky regions: balance first, Challenge Status immediately below it. Challenge Status is sticky in `ready` and `active`, while `completed` and `expired` remain in normal flow. Their offsets and stacking order must keep the full balance and timer/actions visible without overlap, fixed/absolute overlays, transforms, or layout jumps.
 
 ## 5. Catalog and cards
 
@@ -324,7 +324,7 @@ Challenge result also provides `换个挑战`.
 
 For a completed or expired challenge, `返回商品` opens the frozen run in read-only mode. Quantity controls are disabled and no command may mutate the run. Purchasing requires `再来一局` or `换个挑战`. A completed Free Mode run follows the same read-only rule.
 
-Generated image export and Web Share are not required in v1.0. The approved WeChat challenge-metadata share is defined by SPEC-065.
+Generated image export and Web Share are not required in v1.0. The approved WeChat native share behavior is defined by SPEC-065.
 
 ### SPEC-064 — Local record comparison
 
@@ -337,9 +337,13 @@ Challenge records use exact domain values:
 - strictly lower `actualDurationMs` replaces the record;
 - equal or higher `actualDurationMs` keeps the existing record.
 
-### SPEC-065 — WeChat challenge sharing
+### SPEC-065 — WeChat native sharing
 
-The WeChat Mini Program page registers both native friend sharing and timeline sharing. Share parameters use the same validated query contract:
+The WeChat Mini Program page registers native friend sharing and timeline sharing in every game mode. All visible share copy is centralized.
+
+Free Mode uses the validated query `shareMode=free` and ordinary invitation copy without challenge duration or record wording. It never serializes product quantities, balance, RunState, achievements, records, or any sender progress. Opening it selects a new Free Mode run. If replacement would discard a recipient's non-empty local run, the existing restart confirmation remains mandatory.
+
+Challenge parameters use the same validated query contract:
 
 - `challengeMode`: `challenge-30`, `challenge-60`, or `challenge-300`;
 - `duration`: matching integer seconds `30`, `60`, or `300`;

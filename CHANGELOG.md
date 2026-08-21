@@ -10,7 +10,8 @@
 
 - 新增根目录 `CHANGELOG.md`，集中维护项目变更历史。
 - 完成 T0620：新增微信小程序好友分享与朋友圈分享 Adapter，统一生成并校验 `challengeMode / duration / record` 参数；有效分享落地复用现有状态机进入 ready，展示好友记录且不自动开始倒计时。
-- 新增 M6 集中式分享文案与 5 项 UX/分享回归测试，覆盖好友/朋友圈参数一致性、非法参数降级、分享 ready 落地、顶部按钮、active-only sticky 和微信 MAX 行内布局。
+- 完成 T0622：微信好友与朋友圈分享扩展到自由模式；自由分享仅携带 `shareMode=free`，不携带余额、商品数量、RunState 或成绩，落地复用既有状态机创建新自由局。挑战分享继续携带经校验的时长与可选成绩，并保持 ready 手动开始。
+- 新增 M6 集中式分享文案与 8 项 UX/分享回归测试，覆盖自由/挑战好友与朋友圈参数、非法混合参数、自由新局与挑战 ready 落地、顶部按钮、ready/active sticky、自由模式隐藏状态条、微信 MAX 行内布局及目标宽度控件间距。
 - 完成 M5 的 T0501–T0510、T0512–T0516：新增正式现代扁平化 design tokens、安全区与六档 Edge 响应式布局、余额/大额购买/成就/结算装饰动效，以及可持久化的 `system / reduce / full` 动效偏好。
 - 新增 45 个按正式商品 ID 注册、互不重复的原创代码原生商品标记，并为素材登记 creator、format、license、source、attribution 与验收清单；未引入真人照片、公司/IP 标志、外链或参考站素材。
 - 新增 H5 可访问按钮封装、对话框焦点陷阱/恢复/Escape 行为、可见键盘焦点、非纯颜色状态提示与窄屏 44px 关键触控目标。
@@ -50,8 +51,8 @@
 
 - 将持续维护变更日志纳入 `AGENTS.md` 的强制工作流与完成标准。
 - 完成 T0621：挑战模式顶部操作改为“当前时长 / 返回自由模式 / 重新开始”，当前时长按钮继续打开既有 Challenge Picker；自由模式三项操作保持不变。
-- Challenge Status 仅在 active 时使用 sticky，ready 保留“准备阶段 · 计时尚未开始 / 开始挑战 / 换个挑战”，completed/expired 恢复普通文档流；微信 ProductCard 将 `− / 数量 / + / MAX` 合并为一行并使用近方形 88rpx MAX 点击区，H5 布局保持不变。
-- 经本轮明确批准，将 BR-026 的 v1.0 范围最小扩展为微信挑战元数据分享，并同步更新 requirements baseline 1.2、spec 1.2、plan 1.2、architecture 2.2 与 tasks 1.8；Web Share、生成分享图、账号、云端和排行榜仍不在范围内。
+- Challenge Status 在 ready/active 使用同一个 sticky 组件，completed/expired 恢复普通文档流；余额栏与挑战栏分别占位、分层堆叠，移动端 ready/active 保持等高以避免状态切换跳动。微信 ProductCard 继续将 `− / 数量 / + / MAX` 合并为一行，H5 布局保持不变。
+- 经本轮明确批准，将 BR-026 的 v1.0 范围从微信挑战元数据分享扩展为微信自由邀请与挑战元数据分享，并同步更新 requirements baseline 1.3、spec 1.3、plan 1.3、architecture 2.3 与 tasks 1.9；Web Share、生成分享图、账号、云端和排行榜仍不在范围内。
 - 将架构文档升级至 2.1、任务文档升级至 1.7；T0511 与 T0520 已按实际安装和微信运行时证据关闭，M5 状态更新为 `PASS / GO`，正式需求基线、45 商品、价格/cap、20 成就及存档语义未修改。
 - PWA 更新采用等待旧客户端释放后再启用的安全策略，不调用 `skipWaiting`，不强制刷新，也不读取、修改或删除正式游戏 Storage。
 - 将架构文档升级至 1.9，并把 M4 的 T0403–T0416 标记为已验证完成；正式需求基线、商品目录和成就规则未修改。
@@ -67,6 +68,8 @@
 
 ### Fixed
 
+- 修复挑战 ready 状态条无法固定、active 状态条覆盖余额的问题；采用独立 `position: sticky` 余额栏和 Challenge Status、显式 top/高度/gap/z-index 设计令两者不重叠，未使用 fixed、absolute 覆盖或 transform。
+- 修复微信 compact ProductCard 数量输入框与 `+` 视觉贴靠、容易误触的问题；保持 `− / 数量 / + / MAX` 单行和现有按钮高度，通过受限输入列宽、输入框内缩及独立列间距覆盖 390px、360px 双列与 320px 单列布局。
 - 修复未收到 `beforeinstallprompt` 时误导用户“浏览器暂未提供安装入口”的问题；PWA 状态现在区分页面内直接安装、可尝试浏览器菜单、已安装/standalone 与能力未知，文案统一来自集中式资源，未引入非标准安装 API。
 - 修复微信开发者工具中同步提交 100 张完整商品卡可能造成长时间卡顿的问题；仅测试夹具改为每批 20 张分阶段提交，所有 100 张卡仍实际挂载，正式 45 商品页面不受影响。
 - 修复 Taro H5 `Button` 输出为无 button role、无键盘焦点且 Enter/Space 不可触发的自定义元素问题；共享按钮现在复用原业务 handler 并具备跨端可访问语义，且只在真实禁用时输出 `disabled`，避免 `disabled="false"` 误触发禁用态样式。
@@ -80,7 +83,8 @@
 
 ### Verified
 
-- M6 分享/挑战 UX 切片质量门通过：26 个测试文件中的 247 项测试全部通过，TypeScript、ESLint、Prettier 和聚合 `check` 通过；H5、微信小程序与 PWA 生产构建通过，微信产物包含好友/朋友圈生命周期、标准分享菜单、参数键、active sticky 与微信 MAX 行内样式。
+- M6 分享/挑战 UX 切片质量门通过：26 个测试文件中的 250 项测试全部通过，TypeScript、ESLint、Prettier 和聚合 `check` 通过；H5、微信小程序与 PWA 生产构建通过，微信产物包含好友/朋友圈生命周期、标准分享菜单、自由/挑战参数键、ready/active 双 sticky 与微信 MAX 行内样式。
+- H5 生产构建的双 sticky 浏览器实测通过 1920×1080、1366×768、430×932、390×844、360×800：桌面余额/挑战栏间距为 12px，移动端为 10px，重叠均为 0；移动端 ready/active Challenge Status 均为 131px，金额始终完整位于余额栏内，自由模式 Challenge Status DOM 数量为 0。
 - M5 最终自动化质量门通过：25 个测试文件中的 242 项测试全部通过，TypeScript、ESLint、Prettier 和聚合 `check` 通过；H5、微信小程序、PWA 生产构建，H5 布局、PWA 产物和双端素材体积检查通过。
 - T0511 实际安装验收完成：项目验收人通过 Microsoft Edge“应用 → 将此站点作为应用安装”成功安装“花光 $400B”，安装后以 standalone 应用重新打开并完成游戏操作；manifest、Service Worker、display-mode 与四态安装文案核对通过。
 - T0520 微信开发者工具运行时 benchmark 完成：100 个合法测试商品分阶段全部展示，滚动、分类、搜索、`+ / − / MAX / 数量输入`、Receipt 推导和状态更新均完成；可记录的操作样本为 103.78–545.02 ms，应用 runtime Console Error 为 0。工具未提供可靠 FPS，因此未声明 FPS。

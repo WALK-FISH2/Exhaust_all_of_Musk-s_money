@@ -5,8 +5,10 @@ import { deriveChallengeResult } from '../../domain/results'
 import { formatChallengeShareTitle, M6_COPY } from '../../i18n/m6'
 
 export const CHALLENGE_SHARE_PATH = '/pages/index/index'
+export const FREE_SHARE_QUERY = 'shareMode=free'
 
 export interface ChallengeShareRouteParams extends Partial<Record<string, string>> {
+  readonly shareMode?: string | undefined
   readonly challengeMode?: string | undefined
   readonly duration?: string | undefined
   readonly record?: string | undefined
@@ -28,6 +30,10 @@ export interface ChallengeShareHandlers {
   readonly friend: { readonly title: string; readonly path: string }
   readonly timeline: { readonly title: string; readonly query: string }
 }
+
+export type WeappShareLanding =
+  | { readonly kind: 'free'; readonly mode: 'free' }
+  | ({ readonly kind: 'challenge' } & ChallengeShareSnapshot)
 
 function parseInteger(value: string | undefined): number | null {
   if (value === undefined || !/^\d+$/.test(value)) return null
@@ -85,13 +91,16 @@ export function buildChallengeSharePayload(
   }
 }
 
-export function buildChallengeShareHandlers(
+export function buildWeappShareHandlers(
   snapshot: ChallengeShareSnapshot | null,
 ): ChallengeShareHandlers {
   if (snapshot === null) {
     return {
-      friend: { title: M6_COPY.defaultShareTitle, path: CHALLENGE_SHARE_PATH },
-      timeline: { title: M6_COPY.defaultShareTitle, query: '' },
+      friend: {
+        title: M6_COPY.freeShareTitle,
+        path: `${CHALLENGE_SHARE_PATH}?${FREE_SHARE_QUERY}`,
+      },
+      timeline: { title: M6_COPY.freeShareTitle, query: FREE_SHARE_QUERY },
     }
   }
   const payload = buildChallengeSharePayload(snapshot)
@@ -119,4 +128,20 @@ export function parseChallengeShareRoute(
         ? parsedRecord
         : null
   return { mode, durationSeconds: expectedDurationSeconds, recordMs }
+}
+
+export function parseWeappShareRoute(
+  parameters: ChallengeShareRouteParams,
+): WeappShareLanding | null {
+  if (parameters.shareMode !== undefined) {
+    const freeOnly =
+      parameters.shareMode === 'free' &&
+      parameters.challengeMode === undefined &&
+      parameters.duration === undefined &&
+      parameters.record === undefined
+    return freeOnly ? { kind: 'free', mode: 'free' } : null
+  }
+
+  const challenge = parseChallengeShareRoute(parameters)
+  return challenge === null ? null : { kind: 'challenge', ...challenge }
 }

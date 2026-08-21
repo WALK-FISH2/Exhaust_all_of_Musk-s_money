@@ -4,22 +4,18 @@ import { useEffect, useMemo } from 'react'
 import type { RunState } from '../../domain/game-state'
 import type { LocalRecords } from '../../domain/records'
 import {
-  buildChallengeShareHandlers,
+  buildWeappShareHandlers,
   createChallengeShareSnapshot,
-  parseChallengeShareRoute,
+  parseWeappShareRoute,
   type ChallengeShareRouteParams,
-  type ChallengeShareSnapshot,
+  type WeappShareLanding,
 } from './challenge-share'
 
 const IS_WEAPP = process.env.TARO_ENV === 'weapp'
 
-export function useChallengeSharing(
-  run: RunState,
-  records: LocalRecords,
-): ChallengeShareSnapshot | null {
+export function useWeappSharing(run: RunState, records: LocalRecords): WeappShareLanding | null {
   const snapshot = useMemo(() => createChallengeShareSnapshot(run, records), [records, run])
-  const handlers = useMemo(() => buildChallengeShareHandlers(snapshot), [snapshot])
-  const sharingAvailable = snapshot !== null
+  const handlers = useMemo(() => buildWeappShareHandlers(snapshot), [snapshot])
   const router = Taro.useRouter<ChallengeShareRouteParams>()
 
   Taro.useShareAppMessage(() => handlers.friend)
@@ -27,23 +23,20 @@ export function useChallengeSharing(
 
   useEffect(() => {
     if (!IS_WEAPP) return
-    if (sharingAvailable) {
-      void Taro.showShareMenu({ showShareItems: ['shareAppMessage', 'shareTimeline'] })
-      return
-    }
-    void Taro.hideShareMenu()
-  }, [sharingAvailable])
+    void Taro.showShareMenu({ showShareItems: ['shareAppMessage', 'shareTimeline'] })
+  }, [])
 
-  const { challengeMode, duration, record } = router.params
+  const { shareMode, challengeMode, duration, record } = router.params
   return useMemo(
     () =>
       IS_WEAPP
-        ? parseChallengeShareRoute({
+        ? parseWeappShareRoute({
+            shareMode,
             challengeMode,
             duration,
             record,
           })
         : null,
-    [challengeMode, duration, record],
+    [challengeMode, duration, record, shareMode],
   )
 }

@@ -1,7 +1,7 @@
 # Requirements Baseline — Spend_Musk_Money
 
 > Status: **ACTIVE BASELINE**  
-> Baseline: 1.2  
+> Baseline: 1.3  
 > Target product release: v0.1.0 → v1.0  
 > Approved: 2026-08-17  
 > Revised: 2026-08-21
@@ -198,7 +198,11 @@ v1.0 MUST NOT include real purchases, deposits, withdrawals, cash prizes, gambli
 
 ### BR-026 — Sharing scope
 
-The separately approved v1.0 sharing scope is limited to WeChat Mini Program challenge metadata sharing through the native friend and timeline entry points. A share may carry only the challenge mode, the matching 30/60/300-second duration, and a current or local-best elapsed-time record when one exists. Opening that share MUST create the matching challenge in `ready` state, show the friend's record when supplied, and require the recipient to press `开始挑战`; sharing MUST NOT start or extend the authoritative countdown.
+The separately approved v1.0 sharing scope is limited to WeChat Mini Program native friend and timeline entry points and is available in Free Mode and challenge modes.
+
+A Free Mode share may carry only a `shareMode=free` invitation marker. It MUST NOT carry product quantities, balance, RunState, achievements, records, or other sender progress. Opening it creates a new Free Mode run; replacing a recipient's non-empty local run remains protected by the existing restart confirmation.
+
+A challenge share may carry only the challenge mode, the matching 30/60/300-second duration, and a current or local-best elapsed-time record when one exists. Opening that share MUST create the matching challenge in `ready` state, show the friend's record when supplied, and require the recipient to press `开始挑战`; sharing MUST NOT start or extend the authoritative countdown.
 
 This approval does not add an account, backend, save upload, cloud/friend/global ranking, Storage-schema field, generated result image, Web Share integration, or custom remote share asset. Those capabilities remain OUT OF SCOPE unless separately approved.
 

@@ -24,7 +24,7 @@ import { useFreeModeGame } from '../../hooks/use-free-mode-game'
 import { DOMAIN_ERROR_COPY, M2_COPY, UI_NOTICE_COPY } from '../../i18n/m2'
 import { M3_COPY } from '../../i18n/m3'
 import { M4_COPY } from '../../i18n/m4'
-import { useChallengeSharing } from '../../platform/weapp/use-challenge-sharing'
+import { useWeappSharing } from '../../platform/weapp/use-challenge-sharing'
 
 import './index.scss'
 
@@ -40,17 +40,20 @@ export default function IndexPage(): JSX.Element {
 
 function GamePage(): JSX.Element {
   const { state, viewModel, hydrationStatus, persistenceMessage, actions } = useFreeModeGame()
-  const sharedChallenge = useChallengeSharing(state.run, state.records)
-  const appliedSharedChallenge = useRef<string | null>(null)
+  const sharedLanding = useWeappSharing(state.run, state.records)
+  const appliedSharedLanding = useRef<string | null>(null)
   const selectMode = actions.selectMode
 
   useEffect(() => {
-    if (hydrationStatus !== 'ready' || sharedChallenge === null) return
-    const shareKey = `${sharedChallenge.mode}:${sharedChallenge.durationSeconds}:${sharedChallenge.recordMs ?? ''}`
-    if (appliedSharedChallenge.current === shareKey) return
-    appliedSharedChallenge.current = shareKey
-    selectMode(sharedChallenge.mode)
-  }, [hydrationStatus, selectMode, sharedChallenge])
+    if (hydrationStatus !== 'ready' || sharedLanding === null) return
+    const shareKey =
+      sharedLanding.kind === 'free'
+        ? 'free'
+        : `${sharedLanding.mode}:${sharedLanding.durationSeconds}:${sharedLanding.recordMs ?? ''}`
+    if (appliedSharedLanding.current === shareKey) return
+    appliedSharedLanding.current = shareKey
+    selectMode(sharedLanding.mode)
+  }, [hydrationStatus, selectMode, sharedLanding])
 
   useEffect(() => {
     if (!M5_WEAPP_SMOKE_ENABLED) return undefined
@@ -115,8 +118,10 @@ function GamePage(): JSX.Element {
             status={state.run.status}
             remainingMs={viewModel.remainingChallengeMs ?? 0}
             sharedRecordMs={
-              sharedChallenge?.mode === state.run.mode && state.run.status === 'ready'
-                ? sharedChallenge.recordMs
+              sharedLanding?.kind === 'challenge' &&
+              sharedLanding.mode === state.run.mode &&
+              state.run.status === 'ready'
+                ? sharedLanding.recordMs
                 : null
             }
             onStart={actions.startChallenge}

@@ -20,7 +20,7 @@ export interface PersistedGameDataV1 {
 }
 
 export function createDefaultPreferences(): Preferences {
-  return { showApproxCny: true, reducedMotion: 'system' }
+  return { showApproxCny: true, reducedMotion: 'full' }
 }
 
 export function createEmptyPersistedGameData(): PersistedGameDataV1 {
