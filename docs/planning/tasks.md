@@ -1,8 +1,8 @@
 # Tasks — Spend_Musk_Money
 
 > Status: Active task backlog  
-> Version: 1.5  
-> Date: 2026-08-20
+> Version: 1.8  
+> Date: 2026-08-21
 
 Task IDs are stable references. Do not renumber completed tasks.
 
@@ -189,51 +189,53 @@ T0403–T0416 completion evidence is recorded in `docs/engineering/architecture.
 
 ## M5 — UX, accessibility, PWA
 
-- [ ] **T0501** Establish original modern-flat design tokens only. Responsive layout primitives are split into T0512.  
+- [x] **T0501** Establish original modern-flat design tokens only. Responsive layout primitives are split into T0512.  
       Requirements: BR-024, NFR-002.  
       Dependencies: T0007.
-- [ ] **T0502** Define the asset registry, naming/license fields, art direction, and acceptance checklist. Asset production is split into T0513–T0515.  
+- [x] **T0502** Define the asset registry, naming/license fields, art direction, and acceptance checklist. Asset production is split into T0513–T0515.  
       Requirements: BR-024.  
       Dependencies: None.
-- [ ] **T0503** Add balance animation without coupling calculations to animation.
-- [ ] **T0504** Add large-purchase decorative effects.
-- [ ] **T0505** Implement reduced-motion preference.  
+- [x] **T0503** Add balance animation without coupling calculations to animation.
+- [x] **T0504** Add large-purchase decorative effects.
+- [x] **T0505** Implement reduced-motion preference.  
       Requirements: NFR-003.
-- [ ] **T0506** Audit keyboard/focus behavior on H5 and touch target sizes.  
+- [x] **T0506** Audit keyboard/focus behavior on H5 and touch target sizes.  
       Requirements: NFR-002.
-- [ ] **T0507** Add PWA manifest/icons/install metadata.  
+- [x] **T0507** Add PWA manifest/icons/install metadata.  
       Requirements: BR-020.  
       Dependencies: T0005, T0502.
-- [ ] **T0508** Add service worker/offline caching for app shell/static catalog assets.  
+- [x] **T0508** Add service worker/offline caching for app shell/static catalog assets.  
       Requirements: BR-020.  
       Dependencies: T0005, T0507.
-- [ ] **T0509** Verify PWA update does not erase valid saves.  
+- [x] **T0509** Verify PWA update does not erase valid saves.  
       Requirements: BR-020, NFR-005.  
       Dependencies: T0413, T0414, T0508.
-- [ ] **T0510** Add deterministic humorous result-copy templates through centralized string resources.  
+- [x] **T0510** Add deterministic humorous result-copy templates through centralized string resources.  
       Requirements: BR-013, BR-024, NFR-004.  
       Dependencies: T0007, T0110.
-- [ ] **T0511** Add PWA acceptance tests for installability, manifest, service-worker control, offline startup, navigation fallback, old-service-worker update, and old-save migration.  
+- [x] **T0511** Add PWA acceptance tests for installability, manifest, service-worker control, offline startup, navigation fallback, old-service-worker update, and old-save migration.  
       Requirements: BR-020, NFR-005.  
       Dependencies: T0412, T0507, T0508, T0509.
-- [ ] **T0512** Implement responsive layout primitives, safe-area behavior, and mobile/desktop product/receipt composition.  
+- [x] **T0512** Implement responsive layout primitives, safe-area behavior, and mobile/desktop product/receipt composition.  
       Requirements: BR-020, NFR-002.  
       Dependencies: T0501.
-- [ ] **T0513** Produce and register approved original assets for Everyday, Food, and Tech products.  
+- [x] **T0513** Produce and register approved original assets for Everyday, Food, and Tech products.  
       Requirements: BR-024.  
       Dependencies: T0502.
-- [ ] **T0514** Produce and register approved original assets for Vehicles, Homes, and Luxury products.  
+- [x] **T0514** Produce and register approved original assets for Vehicles, Homes, and Luxury products.  
       Requirements: BR-024.  
       Dependencies: T0502.
-- [ ] **T0515** Produce and register approved original assets for Travel, Sports, Business, and Space products.  
+- [x] **T0515** Produce and register approved original assets for Travel, Sports, Business, and Space products.  
       Requirements: BR-024.  
       Dependencies: T0502.
-- [ ] **T0516** Validate asset dimensions, lazy-loading behavior, H5 payload, and WeChat package-size impact.  
+- [x] **T0516** Validate asset dimensions, lazy-loading behavior, H5 payload, and WeChat package-size impact.  
       Requirements: BR-024, BR-028.  
       Dependencies: T0513, T0514, T0515.
-- [ ] **T0520** Benchmark a 100-product scenario on H5 and WeChat: list rendering, quantity updates, money derivation, search/category filtering, and avoidable rerenders.  
+- [x] **T0520** Benchmark a 100-product scenario on H5 and WeChat: list rendering, quantity updates, money derivation, search/category filtering, and avoidable rerenders.  
       Requirements: BR-028.  
       Dependencies: T0203, T0204, T0205, T0512.
+
+T0501–T0516 and T0520 completion evidence is recorded in `docs/engineering/architecture.md` §17.6. For T0511, the project acceptor installed the production PWA from Microsoft Edge's application menu, reopened it in the installed standalone window, and exercised the game successfully; manifest, Service Worker, offline/update/save checks and the four-state install messaging also pass. For T0520, the existing H5/shared guardrail and a WeChat Developer Tools runtime fixture with 100 legal synthetic products pass first presentation, scrolling, category/search filtering, `+ / − / MAX / quantity input`, receipt derivation and state-to-UI updates without application Console errors. The formal 45-product catalog is unchanged, no reliable FPS value is claimed, and Developer Tools evidence is not real-device acceptance. M5 is `PASS / GO` for M6; no M6 task has started.
 
 ## M6 — Release audit
 
@@ -261,6 +263,12 @@ T0403–T0416 completion evidence is recorded in `docs/engineering/architecture.
 - [ ] **T0613** Execute detailed WeChat Developer Tools and real-device acceptance for Storage, background timing, foreground recovery, offline reopen, safe areas, product-scroll performance, result view, and new-run flow.  
       Requirements: BR-008, BR-010, BR-016, BR-021, BR-028, NFR-002.  
       Dependencies: T0415, T0416, T0520, T0610.
+- [x] **T0620** Implement approved WeChat friend/timeline challenge sharing with validated mode/duration/record parameters and a ready-only landing that never starts the countdown automatically.  
+      Requirements: BR-009, BR-010, BR-021, BR-026.  
+      Dependencies: T0314, T0410.
+- [x] **T0621** Refine challenge header navigation, active-only sticky status visibility, and the WeChat compact `− / quantity / + / MAX` control row without changing shared commands.  
+      Requirements: BR-005, BR-009, BR-010, BR-021, BR-022, NFR-002.  
+      Dependencies: T0205, T0310, T0512.
 - [ ] **T0614** Audit money, catalog, Free Mode, receipt/result, restart, currency, search, performance, and calculation-safety evidence. This is one domain portion split from T0601.  
       Requirements: BR-001, BR-002, BR-003, BR-004, BR-005, BR-006, BR-007, BR-008, BR-012, BR-013, BR-018, BR-023, BR-027, BR-028, BR-029, NFR-001.  
       Dependencies: T0118, T0209, T0416, T0520.
@@ -269,10 +277,10 @@ T0403–T0416 completion evidence is recorded in `docs/engineering/architecture.
       Dependencies: T0115, T0313, T0314, T0415.
 - [ ] **T0615** Audit platform, offline, migration, accessibility, localization, and asset evidence for BR-020–BR-022, BR-024, and NFR-002–NFR-005. This is the platform/quality portion split from T0601.  
       Requirements: BR-020, BR-021, BR-022, BR-024, NFR-002, NFR-003, NFR-004, NFR-005.  
-      Dependencies: T0007, T0412, T0505, T0506, T0511, T0516, T0602, T0603, T0604, T0605, T0607, T0611, T0613.
+      Dependencies: T0007, T0412, T0505, T0506, T0511, T0516, T0602, T0603, T0604, T0605, T0607, T0611, T0613, T0620, T0621.
 - [ ] **T0617** Audit the v1 feature boundary and verify that cloud/global/friend ranking, accounts, backend servers, online synchronization, and unapproved social sharing are absent; Deferred items remain non-v1 work.  
       Requirements: BR-026.  
-      Dependencies: T0609.
+      Dependencies: T0609, T0620.
 - [ ] **T0618** Audit privacy and local data minimization: no personal-data collection, save upload, sensitive fields, unnecessary tracking SDKs, or Storage beyond required game data.  
       Requirements: NFR-006.  
       Dependencies: T0414, T0609.
@@ -282,7 +290,7 @@ T0403–T0416 completion evidence is recorded in `docs/engineering/architecture.
 ## Deferred — do not implement under v1.0 tasks
 
 - [ ] **D1001** Generated shareable result image.
-- [ ] **D1002** Web Share / WeChat share-card integration.
+- [ ] **D1002** Generated result-card image and Web Share integration beyond the approved v1.0 WeChat challenge-metadata share.
 - [ ] **D1003** Global/friend leaderboard.
 - [ ] **D1004** Account/cloud save.
 - [ ] **D1005** Live net-worth API.

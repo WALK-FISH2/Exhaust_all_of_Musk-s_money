@@ -50,7 +50,16 @@ if (!/@media \(max-width: 350px\)\{[\s\S]*?\.product-grid\{grid-template-columns
 if (!css.includes('.product-card--compact-mobile .product-card__visual')) {
   throw new Error('H5 build is missing the compact mobile product-card presentation rules.')
 }
+if (!css.includes('.product-card__mark') || !css.includes('safe-area-inset-bottom')) {
+  throw new Error('H5 build is missing the formal product marks or safe-area handling.')
+}
+if (!css.includes('taro-button-core:focus-visible') || !css.includes('.motion-reduce')) {
+  throw new Error('H5 build is missing visible keyboard focus or reduced-motion rules.')
+}
+if (!css.includes('.motion-settings') || !css.includes('.pwa-status')) {
+  throw new Error('H5 build is missing M5 motion preferences or PWA status UI.')
+}
 
 console.log(
-  'H5 layout verification passed: CSS-pixel sizing, category wrapping, compact two-column mobile cards and very-narrow fallback are present.',
+  'H5 layout verification passed: CSS-pixel sizing, responsive cards, safe areas, focus visibility, motion preferences and PWA status are present.',
 )

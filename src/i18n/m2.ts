@@ -10,6 +10,7 @@ export const M2_COPY = {
   disclaimer:
     '本作品为非官方娱乐模拟游戏，与埃隆·马斯克本人及其相关公司无隶属、赞助或背书关系。游戏资产和价格均为玩法设定，不代表实时财务数据或真实报价，也不涉及真实金钱。',
   remaining: '剩余资产',
+  balanceRegion: '本局资产与消费进度',
   spent: '已花费',
   progress: '消费进度',
   spendingPercent: '消费比例',
@@ -38,6 +39,7 @@ export const M2_COPY = {
   unlocked: '已解锁',
   achievementToast: '成就解锁',
   restart: '重新开始',
+  restartEyebrow: '重置本局？',
   restartTitle: '确定清空本局进度？',
   restartBody: '当前购买记录和本局成就会被清空，重新获得完整的 $400B。',
   cancel: '继续花',
@@ -50,6 +52,8 @@ export const M2_COPY = {
   categoriesTouched: '覆盖分类',
   playAgain: '再来一局',
   backToProducts: '返回商品（只读）',
+  dismissFeedback: '关闭提示',
+  dismissAchievement: '关闭成就提示',
 } as const
 
 export const DOMAIN_ERROR_COPY: Readonly<Record<DomainErrorCode, string>> = {

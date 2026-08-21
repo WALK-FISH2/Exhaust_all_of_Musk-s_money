@@ -22,6 +22,8 @@
     "format:check": "prettier --check .",
     "h5:layout-check": "node scripts/check-h5-layout-build.mjs",
     "pwa:check": "node scripts/check-pwa-build.mjs",
+    "asset:check": "node scripts/check-asset-build.mjs",
+    "benchmark:weapp:m5": "node scripts/run-weapp-m5-benchmark.mjs",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run format:check"
   },
   "dependencies": {
@@ -51,6 +53,7 @@
     "eslint-config-taro": "4.2.1",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "4.6.2",
+    "miniprogram-automator": "0.12.1",
     "prettier": "3.9.6",
     "react-refresh": "0.14.2",
     "rollup": "3.29.5",

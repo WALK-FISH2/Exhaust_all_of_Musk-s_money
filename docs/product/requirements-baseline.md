@@ -1,10 +1,10 @@
 # Requirements Baseline — Spend_Musk_Money
 
 > Status: **ACTIVE BASELINE**  
-> Baseline: 1.1  
+> Baseline: 1.2  
 > Target product release: v0.1.0 → v1.0  
 > Approved: 2026-08-17  
-> Revised: 2026-08-18
+> Revised: 2026-08-21
 
 ## 1. Baseline intent
 
@@ -198,7 +198,9 @@ v1.0 MUST NOT include real purchases, deposits, withdrawals, cash prizes, gambli
 
 ### BR-026 — Sharing scope
 
-Native result-image export, link sharing, social sharing, and global ranking are OUT OF SCOPE for v1.0 unless separately approved. The v1.0 result page itself should be visually composed so a user can capture it manually.
+The separately approved v1.0 sharing scope is limited to WeChat Mini Program challenge metadata sharing through the native friend and timeline entry points. A share may carry only the challenge mode, the matching 30/60/300-second duration, and a current or local-best elapsed-time record when one exists. Opening that share MUST create the matching challenge in `ready` state, show the friend's record when supplied, and require the recipient to press `开始挑战`; sharing MUST NOT start or extend the authoritative countdown.
+
+This approval does not add an account, backend, save upload, cloud/friend/global ranking, Storage-schema field, generated result image, Web Share integration, or custom remote share asset. Those capabilities remain OUT OF SCOPE unless separately approved.
 
 ### BR-027 — Search/filter
 

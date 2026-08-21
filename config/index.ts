@@ -28,15 +28,18 @@ const pwaPlugin = VitePWA({
   injectRegister: 'auto',
   manifest: {
     id: '/',
-    name: 'Spend Musk Money',
-    short_name: 'Spend Money',
-    description: 'A cross-platform entertainment simulation.',
+    name: "花光马斯克的钱 / Spend Musk's Money",
+    short_name: '花光 $400B',
+    description: '非官方、无真实交易的 $400B 本地娱乐消费模拟游戏。',
     start_url: '/',
     scope: '/',
     display: 'standalone',
-    background_color: '#f5f7fb',
-    theme_color: '#172033',
+    background_color: '#f3f0e8',
+    theme_color: '#13213c',
     lang: 'zh-CN',
+    orientation: 'any',
+    categories: ['games', 'entertainment'],
+    prefer_related_applications: false,
     icons: [
       {
         src: '/static/pwa-icon.svg',
@@ -45,7 +48,7 @@ const pwaPlugin = VitePWA({
         purpose: 'any',
       },
       {
-        src: '/static/pwa-icon.svg',
+        src: '/static/pwa-icon-maskable.svg',
         sizes: '512x512',
         type: 'image/svg+xml',
         purpose: 'maskable',
@@ -71,13 +74,20 @@ const config: UserConfigExport<'vite'> = {
   sourceRoot: 'src',
   outputRoot: isH5 ? 'dist/h5' : 'dist/weapp',
   plugins: [],
-  defineConstants: {},
+  defineConstants: {
+    __M5_WEAPP_BENCHMARK__: JSON.stringify(process.env.M5_WEAPP_BENCHMARK === '1'),
+    __M5_WEAPP_SMOKE__: JSON.stringify(process.env.M5_WEAPP_SMOKE === '1'),
+  },
   copy: {
     patterns: isH5
       ? [
           {
             from: 'static/pwa-icon.svg',
             to: 'dist/h5/static/pwa-icon.svg',
+          },
+          {
+            from: 'static/pwa-icon-maskable.svg',
+            to: 'dist/h5/static/pwa-icon-maskable.svg',
           },
         ]
       : [],

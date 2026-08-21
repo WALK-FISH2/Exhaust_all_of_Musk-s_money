@@ -1,6 +1,10 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Text, View } from '@tarojs/components'
+
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 
 import { M4_COPY } from '../../i18n/m4'
+import { M5_COPY } from '../../i18n/m5'
+import { useAccessibleDialog } from '../../platform/use-accessible-dialog'
 
 interface RestoreDialogProps {
   readonly open: boolean
@@ -13,10 +17,20 @@ export function RestoreDialog({
   onContinue,
   onRestart,
 }: RestoreDialogProps): JSX.Element | null {
+  useAccessibleDialog({
+    open,
+    dialogId: 'restore-dialog-panel',
+    initialFocusId: 'continue-restored-run',
+  })
   if (!open) return null
   return (
     <View id='restore-dialog' className='dialog-backdrop'>
-      <View className='dialog-card'>
+      <View
+        id='restore-dialog-panel'
+        className='dialog-card'
+        role='dialog'
+        ariaLabel={M5_COPY.restoreDialog}
+      >
         <Text className='dialog-card__title'>{M4_COPY.restoreTitle}</Text>
         <Text className='dialog-card__body'>{M4_COPY.restoreBody}</Text>
         <View className='dialog-card__actions'>
@@ -47,10 +61,21 @@ export function ClearDataDialog({
   onCancel,
   onConfirm,
 }: ClearDataDialogProps): JSX.Element | null {
+  useAccessibleDialog({
+    open,
+    dialogId: 'clear-data-dialog-panel',
+    initialFocusId: 'cancel-clear-data',
+    onEscape: onCancel,
+  })
   if (!open) return null
   return (
     <View id='clear-data-dialog' className='dialog-backdrop'>
-      <View className='dialog-card'>
+      <View
+        id='clear-data-dialog-panel'
+        className='dialog-card'
+        role='dialog'
+        ariaLabel={M5_COPY.clearDataDialog}
+      >
         <Text className='dialog-card__title'>{M4_COPY.clearTitle}</Text>
         <Text className='dialog-card__body'>{M4_COPY.clearBody}</Text>
         <View className='dialog-card__actions'>

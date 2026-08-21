@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title id="title">Spend Money M0 icon</title>
-  <rect width="512" height="512" rx="112" fill="#172033"/>
-  <circle cx="256" cy="256" r="156" fill="#3066be"/>
-  <path d="M160 244h192v40H160z" fill="#fff"/>
-  <path d="M236 160h40v192h-40z" fill="#fff"/>
-  <circle cx="256" cy="256" r="74" fill="#172033"/>
-  <text x="256" y="278" fill="#fff" font-family="Arial, sans-serif" font-size="64" font-weight="700" text-anchor="middle">M0</text>
+  <title id="title">花光四千亿美元应用图标</title>
+  <rect width="512" height="512" rx="112" fill="#13213c"/>
+  <circle cx="256" cy="238" r="158" fill="#ffc857" stroke="#fffdf8" stroke-width="18"/>
+  <path d="M166 162h180v48H166zm0 74h180v116H166z" fill="#fffdf8" stroke="#13213c" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M201 276h110M201 316h76" fill="none" stroke="#1954d1" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="344" cy="352" r="70" fill="#ff6b35" stroke="#13213c" stroke-width="14"/>
+  <text x="344" y="373" fill="#fff" font-family="Arial, sans-serif" font-size="58" font-weight="900" text-anchor="middle">$0</text>
 </svg>

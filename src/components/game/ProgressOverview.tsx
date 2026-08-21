@@ -1,4 +1,6 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Text, View } from '@tarojs/components'
+
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 
 import { ACHIEVEMENT_DEFINITIONS } from '../../data/achievements'
 import type { AchievementId } from '../../domain/achievement-types'

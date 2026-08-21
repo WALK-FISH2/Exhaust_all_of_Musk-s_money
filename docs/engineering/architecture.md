@@ -1,8 +1,8 @@
 # Architecture — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.9  
-> Date: 2026-08-20  
+> Version: 2.2  
+> Date: 2026-08-21  
 > Parent: `spec.md`
 
 ## 1. Architectural goal
@@ -36,7 +36,9 @@ PWA capability is added at the H5 output layer:
 - cached static catalog/assets;
 - update strategy that does not corrupt local saves.
 
-M0 validated `vite-plugin-pwa 1.3.0` inside the Taro Vite plugin chain for H5 production builds. The selected integration uses `injectManifest` with a repository-owned minimal service worker because Workbox's default `generateSW` path generation does not escape the apostrophe in this repository's Windows path. The service worker precaches the generated app shell and static assets, uses a cached `index.html` navigation fallback, and does not call `skipWaiting`; activation/refresh remains user-mediated. Formal update UI and full install/offline acceptance remain later PWA tasks.
+M0 validated `vite-plugin-pwa 1.3.0` inside the Taro Vite plugin chain for H5 production builds. The selected integration uses `injectManifest` with a repository-owned minimal service worker because Workbox's default `generateSW` path generation does not escape the apostrophe in this repository's Windows path. M5 formalizes the manifest identity, standard/maskable original icons, scoped cache ownership, app-shell/static-asset precache, network-first navigation with cached `index.html` fallback, install readiness UI, offline readiness UI, and a non-destructive waiting-update notice. The service worker does not call `skipWaiting`; a downloaded update activates only after existing clients release it. Service-worker code does not read, write, or delete the formal game Storage key.
+
+`beforeinstallprompt` is an optional signal that the page can directly open the browser's standard install prompt; its absence is not evidence that PWA installation is unsupported. The H5 status adapter therefore distinguishes direct prompt availability, no in-page prompt with browser-menu installation guidance, installed/standalone display mode, and an unknown capability state. Standalone detection takes precedence, all user-facing text comes from the centralized string resource, and no non-standard installation API is introduced.
 
 ## 3. Source layout
 
@@ -328,7 +330,7 @@ Allowed platform-specific concerns:
 
 - storage adapter;
 - lifecycle events;
-- share API in future versions;
+- approved WeChat challenge sharing behind a platform adapter;
 - PWA install/update behavior;
 - responsive CSS differences;
 - safe-area handling;
@@ -343,9 +345,27 @@ Do not compensate for H5 first-render sizing with browser zoom, `transform: scal
 
 ### 12.2 Responsive product-card policy
 
-Product cards keep one cross-platform component tree and the same Domain callbacks at every width. Desktop/tablet presentation retains the wider two-column card layout. At viewport widths up to 820px the product grid uses two compact columns: the visual becomes a short header band, names are single-line ellipsized, USD/CNY share a price row, `− / quantity / +` retain dedicated controls, MAX uses a compact full row, and the quantity summary plus subtotal remain visible. At 350px and below the grid falls back to one compact column so controls do not become unusably narrow.
+Product cards keep one cross-platform component tree and the same Domain callbacks at every width. Desktop/tablet presentation retains the wider two-column card layout. At viewport widths up to 820px the product grid uses two compact columns: the visual becomes a short header band, names are single-line ellipsized, USD/CNY share a price row, and the quantity summary plus subtotal remain visible. H5 retains `− / quantity / +` plus a compact full-row MAX. The WeChat build adds only a presentation class that places `− / quantity / + / MAX` in one row and gives MAX an approximately square 88rpx target; both variants invoke the same shared MAX command. At 350px and below the grid falls back to one compact column so controls do not become unusably narrow.
 
 Responsive presentation must not introduce a second product dataset, alternate money math, or platform-specific MAX implementation. H5 build checks protect the two-column and very-narrow fallback rules; WEAPP must continue compiling the same component and styles.
+
+### 12.4 M6 WeChat sharing and challenge-navigation policy
+
+- `platform/weapp/challenge-share.ts` is the only query serializer/parser for the approved WeChat share contract. It validates challenge mode, matching 30/60/300-second duration, and an optional bounded integer millisecond record before application state sees the route.
+- `use-challenge-sharing.ts` registers Taro's `useShareAppMessage` and `useShareTimeline` hooks and exposes the standard WeChat friend/timeline menu only while a challenge mode supplies a valid snapshot. Free Mode hides those entries. Friend and timeline payloads reuse the same snapshot; no server, account, ranking, upload, remote image, or Storage field is added.
+- A valid landing is applied only after hydration and reuses the existing `select-mode` transition. The resulting challenge remains `ready` with null `startedAt`, `deadlineAt`, and `durationMs`; only the existing explicit start action begins timing. The existing non-empty-run restart confirmation still guards destructive mode changes.
+- Shared-record display is route/UI state only. It is not added to `RunState`, local records, or the persisted schema.
+- The challenge header reuses the existing picker and mode-selection actions. Active status alone receives the sticky class; ready, completed, and expired statuses remain in normal flow. Sticky positioning is presentation-only and cannot affect deadline reconciliation.
+
+### 12.3 M5 presentation and accessibility policy
+
+- Shared design tokens own the formal palette, radii, shadows, motion durations, content widths, and responsive breakpoints. Component styles consume these values instead of introducing a second visual system.
+- All 45 formal products use unique original code-native marks registered against product IDs. Asset records include creator, format, license, source, and attribution fields. Product visuals are decorative; product names remain the accessible content source.
+- Balance, large-purchase, achievement, result, and challenge-urgency effects are presentation-only. They observe authoritative state after a Domain transition and cannot calculate money, quantity, achievement, timer, save, or record values.
+- Motion preference is `system | reduce | full`, persists through the existing preference schema, and never changes gameplay. `reduce` disables decorative motion; `system` honors `prefers-reduced-motion`; `full` is an explicit user override.
+- H5 Taro buttons are custom elements, so the shared `AccessibleButton` supplies button role, keyboard focus, disabled state, and Enter/Space activation without duplicating business handlers. Modal focus is trapped and restored; safe initial actions and Escape dismissal are explicit per dialog.
+- Selected, urgent, unlocked, new-record, disabled, online/offline, and update states use text or symbols in addition to color. Keyboard focus remains visibly outlined.
+- The shared shell accounts for safe-area insets. Desktop widths use the full composition, widths through 820px use compact layout, and widths through 350px use a single-column product fallback with 44px primary touch targets.
 
 Not allowed to diverge:
 
@@ -364,7 +384,7 @@ Service worker updates must not silently wipe local data. The Web client should 
 - activate a compatible update safely; or
 - present a non-blocking refresh/update action after a new version is ready.
 
-Persisted schema migration runs before active game state is mounted.
+Persisted schema migration runs before active game state is mounted. The M5 service worker owns only caches prefixed `spend-musk-money-app-shell-`; activation never deletes another application's origin caches. A waiting update is surfaced as non-blocking status text and is not force-activated or paired with an automatic reload. Game progress remains exclusively in the versioned Storage repository.
 
 ## 14. Performance
 
@@ -373,6 +393,8 @@ Persisted schema migration runs before active game state is mounted.
 - Derivations may be memoized after profiling; correctness comes first.
 - Images use appropriately sized assets and lazy loading where supported.
 - No network request is required per purchase.
+- The H5 unpacked-build budget is 5 MiB, the WeChat early-warning package budget is 2 MiB, and image payload warning budget is 256 KiB. The asset artifact check reports exact file and byte counts for both targets.
+- A test-only legal 100-product fixture exercises formal ProductCard rendering, repeated search/category filtering, receipt/result derivation, and a one-item update without changing the 45-product catalog. Measurements are guardrail evidence, not browser FPS or real-device proof.
 
 ## 15. Security/privacy
 
@@ -429,8 +451,8 @@ If the PWA build pipeline differs from the preferred plugin, update this archite
 - Vitest 3.2.4 ran the shared pure-domain and storage-adapter contract tests outside both clients.
 - The H5 development page was loaded in a browser; shared Domain and H5 Storage checks both reported `PASS` with no browser console errors or warnings.
 - The H5 production build emitted the manifest, registration script, service worker, app-shell assets, icon, precache list, and navigation fallback. Automated artifact checks passed.
-- WeChat production compilation passed. Developer Tools/runtime and device verification remain outstanding because the installed IDE has its CLI service port disabled; M0 did not change that security setting automatically.
-- Browser install-prompt and server-disconnected offline-reload acceptance remain outstanding and are owned by T0507/T0511/T0603; the M0 build route is nevertheless proven.
+- WeChat production compilation passed. Developer Tools/runtime and device verification were still outstanding at the M0 gate because the installed IDE's CLI service port was disabled; M0 did not change that security setting automatically. The Developer Tools portion was later closed in M5, while real-device acceptance remains in M6.
+- Browser install-prompt and server-disconnected offline-reload acceptance were still outstanding at the M0 gate and assigned to T0507/T0511/T0603; the M0 build route was nevertheless proven. T0511 was later closed by the M5 installation acceptance recorded in §17.6.
 
 ### 17.2 M1 verification result — 2026-08-18
 
@@ -480,3 +502,24 @@ If the PWA build pipeline differs from the preferred plugin, update this archite
 - Persistence and restore coverage includes Free active/completed/new-run flows, challenge active/expired/early-completed flows, process-style reopen, corrupt JSON, partial active-run recovery, schema migration, unknown/duplicate IDs, future schema/catalog protection, price-snapshot authority, adapter failures, record ties, and clear-data confirmation. The full quality gate passes with 232 tests across 21 files, followed by successful H5, WeChat, and PWA production builds.
 - Microsoft Edge production smoke passed purchase → full reload → continue, completed Free reload/freeze, active Challenge reload without deadline reset, closing the page across a 30-second deadline, immediate expired result with `30.00` seconds, permanent achievement retention, record retention after another reload, and confirmed local-data reset. Edge reported zero application Console errors.
 - The WeChat production target and formal Taro Storage repository contract pass. The installed WeChat Developer Tools IDE service port remains disabled, so tool-runtime and real-device lifecycle acceptance is not claimed here and remains assigned to T0613.
+
+### 17.6 M5 implementation and verification status — 2026-08-21
+
+- T0501–T0516 and T0520 are implemented and verified. Formal tokens, 45 registered original code-native product marks, asset/license metadata, responsive/safe-area rules, balance and purchase feedback, centralized deterministic result copy, persisted reduced-motion preference, H5 keyboard/dialog behavior, manifest/icons, scoped app-shell service worker, package budgets, PWA install acceptance and the 100-product cross-target benchmark are in place without changing any product, price, cap, achievement, money, timer, persistence, or record rule.
+- The production Edge smoke passed at 1920×1080, 1366×768, 430×932, 390×844, 360×800, and 320×720. The 320px layout retains usable product controls; keyboard Enter/Space activation, Escape dismissal, dialog focus wrap, visible selected-state text, and persisted reduced-motion selection were exercised. The original Taro H5 custom-button output lacked role/focus/keyboard semantics; the shared accessible wrapper fixed that defect and the browser rerun passed.
+- A fresh Edge origin loaded the current M5 service worker, then the static server was stopped. Full reload still opened the app shell, restored a `$1` purchase, allowed a second offline purchase, and restored the resulting `$3` spend after another offline reload. A 30-second challenge also started offline, reconciled elapsed wall-clock time while another tab was active, and froze at the exact `30.00`-second timeout result. A prior-worker update was observed waiting without forced reload; valid local progress remained available before and after the update path.
+- T0511 installation acceptance is complete. The project acceptor used Microsoft Edge's application menu to install the production PWA as “花光 $400B”, reopened the installed application, and exercised game behavior successfully. The manifest declares `display: standalone`, the display-mode adapter recognizes standalone launches, and absence of `beforeinstallprompt` now gives browser-menu guidance instead of falsely reporting unsupported installation.
+- T0520 uses a test-only build flag and 100 legal synthetic product definitions without mutating the formal 45-product catalog. Because a synchronous 100-card commit caused an observable long stall in Developer Tools, the fixture now commits batches of 20 until all 100 real product cards are mounted; no virtual-list, global-state or performance-framework dependency was added. The production 45-product build does not enable this fixture.
+- In WeChat Developer Tools on the iPhone 12/13 (Pro) simulator (`platform: devtools`, iOS 10.0.1, SDK 3.17.1, 390×753), staged first presentation reached all 100 products and the runtime bridge completed scrolling, category changes, search/reset, `+`, `−`, `MAX`, quantity input, receipt derivation and state-to-UI updates. Recorded action samples ranged from 103.78 ms to 545.02 ms; the final quantity and receipt quantity were both 3, and the application runtime Console error list was empty. The tool did not expose a reliable FPS sample, so no FPS is claimed.
+- The same Developer Tools session passed a basic formal-build smoke: home startup, Free purchase, compact product layout, persisted purchase restoration, 30-second challenge ready/start flow, page scrolling and absence of application runtime errors. Developer Tools evidence is not a substitute for M6 real-device acceptance.
+- 242 tests across 25 files pass. TypeScript, ESLint, Prettier, the aggregate quality gate, H5/WeChat/PWA production builds, H5 layout checks, PWA artifact checks, and H5/WeChat asset-budget checks pass in the final M5 gate run.
+- M5 is `PASS / GO` for M6. No M6 implementation or real-device acceptance is claimed.
+
+### 17.7 M6 sharing and challenge UX slice — 2026-08-21
+
+- T0620 implements the BR-026-approved WeChat friend/timeline metadata share. Both entry points carry one validated `challengeMode / duration / record` query snapshot; a valid recipient route selects the existing challenge in `ready` state, displays the optional friend record, and never starts the authoritative timer automatically.
+- T0621 changes only navigation/presentation behavior: Free Mode retains `自由模式 / 挑战模式 / 重新开始`; a challenge uses the clickable current duration, `返回自由模式`, and `重新开始`; the current-duration action opens the existing Challenge Picker. Active challenge status is sticky while ready/completed/expired remain non-sticky.
+- The WeChat ProductCard build class renders `− / quantity / + / MAX` in one compact row with an approximately square 88rpx MAX target. H5 keeps its existing desktop and compact layouts, and both targets continue to call the same Domain command callbacks.
+- The Storage schema remains version 1 and catalog version 2. No Domain money, catalog, achievement, record, persistence, or challenge-timing rule changed.
+- The aggregate gate passes with 247 tests across 26 files. TypeScript, ESLint, Prettier, H5, WeChat, and PWA production builds pass; the generated WeChat page bundle contains `useShareAppMessage`, `useShareTimeline`, `showShareMenu`, the validated query keys, active-only sticky class, and inline WeChat MAX layout.
+- This UX slice is complete, but the remaining M6 release-audit and real-device tasks are not claimed complete.

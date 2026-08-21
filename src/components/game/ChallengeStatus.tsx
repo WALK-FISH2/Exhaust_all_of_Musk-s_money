@@ -1,7 +1,10 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Text, View } from '@tarojs/components'
+
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 
 import type { ChallengeMode, RunStatus } from '../../domain/game-state'
 import { CHALLENGE_MODE_LABELS, M3_COPY } from '../../i18n/m3'
+import { formatChallengeRecord, M6_COPY } from '../../i18n/m6'
 
 export function formatChallengeCountdown(remainingMs: number): string {
   const totalSeconds = Math.ceil(Math.max(0, remainingMs) / 1_000)
@@ -14,6 +17,7 @@ interface ChallengeStatusProps {
   readonly mode: ChallengeMode
   readonly status: RunStatus
   readonly remainingMs: number
+  readonly sharedRecordMs?: number | null
   readonly onStart: () => void
   readonly onChangeChallenge: () => void
 }
@@ -22,21 +26,37 @@ export function ChallengeStatus({
   mode,
   status,
   remainingMs,
+  sharedRecordMs = null,
   onStart,
   onChangeChallenge,
 }: ChallengeStatusProps): JSX.Element {
   const urgent = status === 'active' && remainingMs <= 10_000
+  const sticky = status === 'active'
   return (
     <View
       id='challenge-status'
-      className={`challenge-status challenge-status--${status}${urgent ? ' challenge-status--urgent' : ''}`}
+      className={`challenge-status challenge-status--${status}${sticky ? ' challenge-status--sticky' : ''}${urgent ? ' challenge-status--urgent' : ''}`}
+      role='status'
+      ariaLabel={`${CHALLENGE_MODE_LABELS[mode]} ${
+        status === 'active'
+          ? `${M3_COPY.remaining} ${formatChallengeCountdown(remainingMs)}`
+          : status === 'ready'
+            ? M3_COPY.ready
+            : status === 'completed'
+              ? M3_COPY.challengeCleared
+              : M3_COPY.challengeExpired
+      }`}
     >
       <View className='challenge-status__copy'>
         <Text className='challenge-status__mode'>{CHALLENGE_MODE_LABELS[mode]}</Text>
         {status === 'ready' ? (
           <>
             <Text className='challenge-status__state'>{M3_COPY.ready}</Text>
-            <Text className='challenge-status__hint'>{M3_COPY.readyHint}</Text>
+            {sharedRecordMs !== null ? (
+              <Text id='shared-challenge-record' className='challenge-status__shared-record'>
+                {M6_COPY.friendRecord}：{formatChallengeRecord(sharedRecordMs)}
+              </Text>
+            ) : null}
           </>
         ) : status === 'active' ? (
           <Text className='challenge-status__state'>{M3_COPY.remaining}</Text>

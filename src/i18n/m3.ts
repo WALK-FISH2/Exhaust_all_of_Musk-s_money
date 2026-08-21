@@ -9,6 +9,7 @@ export const CHALLENGE_MODE_LABELS: Readonly<Record<ChallengeMode, string>> = {
 export const M3_COPY = {
   challengeMode: '挑战模式',
   challengeEyebrow: 'CHALLENGE MODE · DEADLINE COUNTS',
+  challengeOptionHint: '明确开始 · deadline 计时',
   chooseChallenge: '选择挑战时长',
   chooseChallengeHint: '选择时长不会开始计时。准备好后再点击“开始挑战”。',
   closePicker: '暂不挑战',

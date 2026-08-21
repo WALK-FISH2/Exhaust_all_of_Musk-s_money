@@ -1,8 +1,8 @@
 # Implementation Plan — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.1  
-> Date: 2026-08-18
+> Version: 1.2  
+> Date: 2026-08-21
 
 ## Milestone M0 — Cross-platform technical spike
 
@@ -118,6 +118,8 @@ Deliver:
 - disclaimer/identity review;
 - privacy/data-minimization review;
 - v1 feature-boundary review;
+- approved WeChat friend/timeline challenge-metadata sharing with ready-state landing;
+- challenge header/status visibility and WeChat quantity-control UX refinement;
 - production builds.
 
 Exit gate: all baseline MUST requirements pass.
@@ -127,7 +129,7 @@ Exit gate: all baseline MUST requirements pass.
 ### v1.x
 
 - generated result-card image;
-- Web Share / Mini Program share card;
+- generated result-card image and Web Share integration;
 - bilingual Chinese/English UI;
 - additional catalogs/themes;
 - custom local challenge presets.

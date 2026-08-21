@@ -120,6 +120,10 @@ export type FreeModeAction =
   | { readonly type: 'restart-restored-run'; readonly runId: string; readonly timestamp: number }
   | { readonly type: 'request-clear-data' }
   | { readonly type: 'cancel-clear-data' }
+  | {
+      readonly type: 'set-reduced-motion'
+      readonly value: Preferences['reducedMotion']
+    }
   | { readonly type: 'clear-local-data'; readonly runId: string; readonly timestamp: number }
 
 export class FreeModeControllerError extends Error {
@@ -467,6 +471,14 @@ export function freeModeReducer(state: FreeModeUiState, action: FreeModeAction):
       return { ...state, clearDataConfirmationOpen: true }
     case 'cancel-clear-data':
       return { ...state, clearDataConfirmationOpen: false }
+    case 'set-reduced-motion':
+      return state.preferences.reducedMotion === action.value
+        ? state
+        : {
+            ...state,
+            preferences: { ...state.preferences, reducedMotion: action.value },
+            persistenceRevision: state.persistenceRevision + 1,
+          }
     case 'clear-local-data':
       return createModeUiState('free', action.runId, action.timestamp)
   }

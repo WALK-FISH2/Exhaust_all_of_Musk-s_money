@@ -11,6 +11,7 @@ import { SYSTEM_CLOCK, type Clock } from '../platform/clock'
 import { createPlatformStorageAdapter } from '../platform/create-storage-adapter'
 import { useRunLifecycle } from '../platform/use-run-lifecycle'
 import { GameStorageRepository } from '../storage/repository'
+import type { Preferences } from '../storage/schema'
 
 function createRunIdentity(
   sequence: number,
@@ -197,6 +198,10 @@ export function useFreeModeGame(clock: Clock = SYSTEM_CLOCK) {
       }, [nextRunIdentity, state.run.mode]),
       requestClearData: useCallback(() => dispatch({ type: 'request-clear-data' }), []),
       cancelClearData: useCallback(() => dispatch({ type: 'cancel-clear-data' }), []),
+      setReducedMotion: useCallback(
+        (value: Preferences['reducedMotion']) => dispatch({ type: 'set-reduced-motion', value }),
+        [],
+      ),
       confirmClearData: useCallback(() => {
         suspendAutosave.current = true
         void repository.clear().then((result) => {

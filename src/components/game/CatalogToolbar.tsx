@@ -1,7 +1,10 @@
-import { Button, Input, Text, View } from '@tarojs/components'
+import { Input, Text, View } from '@tarojs/components'
+
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 
 import { CATEGORIES } from '../../data/categories'
 import { M2_COPY } from '../../i18n/m2'
+import { M5_COPY } from '../../i18n/m5'
 import { CATEGORY_EMOJI } from '../../ui/category-visuals'
 
 interface CatalogToolbarProps {
@@ -29,6 +32,7 @@ export function CatalogToolbar({
           className='catalog-search'
           value={searchQuery}
           placeholder={M2_COPY.searchPlaceholder}
+          ariaLabel={M5_COPY.searchLabel}
           confirmType='search'
           onInput={(event) => onSearch(event.detail.value)}
         />
@@ -39,20 +43,24 @@ export function CatalogToolbar({
           className={`category-chip${selectedCategoryId === 'all' ? ' category-chip--active' : ''}`}
           onClick={() => onSelectCategory('all')}
         >
-          ✦ {M2_COPY.allCategories}
+          {selectedCategoryId === 'all' ? '✓ ' : '✦ '}
+          {M2_COPY.allCategories}
         </Button>
-        {CATEGORIES.map((category) => (
-          <Button
-            id={`category-${category.id}`}
-            key={category.id}
-            className={`category-chip${
-              selectedCategoryId === category.id ? ' category-chip--active' : ''
-            }`}
-            onClick={() => onSelectCategory(category.id)}
-          >
-            {CATEGORY_EMOJI[category.id]} {category.nameZh}
-          </Button>
-        ))}
+        {CATEGORIES.map((category) => {
+          const selected = selectedCategoryId === category.id
+          return (
+            <Button
+              id={`category-${category.id}`}
+              key={category.id}
+              className={`category-chip${selected ? ' category-chip--active' : ''}`}
+              ariaLabel={`${category.nameZh}${selected ? `，${M5_COPY.selected}` : ''}`}
+              onClick={() => onSelectCategory(category.id)}
+            >
+              {selected ? '✓ ' : `${CATEGORY_EMOJI[category.id]} `}
+              {category.nameZh}
+            </Button>
+          )
+        })}
       </View>
     </View>
   )

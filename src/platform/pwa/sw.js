@@ -1,6 +1,7 @@
 /* eslint-env serviceworker */
 
-const CACHE_NAME = 'm0-app-shell-v1'
+const CACHE_PREFIX = 'spend-musk-money-app-shell-'
+const CACHE_NAME = `${CACHE_PREFIX}m5-v1`
 const PRECACHE_ENTRIES = globalThis.__WB_MANIFEST
 const PRECACHE_URLS = PRECACHE_ENTRIES.map((entry) => entry.url)
 
@@ -13,7 +14,11 @@ globalThis.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
       ),
   )
 })

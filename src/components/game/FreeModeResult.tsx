@@ -1,4 +1,6 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Text, View } from '@tarojs/components'
+
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 
 import { PRODUCT_BY_ID } from '../../data/products'
 import type { AchievementId } from '../../domain/achievement-types'
@@ -7,6 +9,7 @@ import type { ChallengeRunResult, RunResultMetrics } from '../../domain/results'
 import { M2_COPY } from '../../i18n/m2'
 import { M3_COPY } from '../../i18n/m3'
 import { M4_COPY } from '../../i18n/m4'
+import { selectResultCopy, type ResultCopyContext } from '../../i18n/m5'
 
 interface FreeModeResultProps {
   readonly metrics: RunResultMetrics
@@ -39,6 +42,15 @@ export function FreeModeResult({
 }: FreeModeResultProps): JSX.Element {
   const highestLine = metrics.highestSubtotalLine
   const highestProduct = highestLine ? PRODUCT_BY_ID.get(highestLine.productId) : undefined
+  const copyContext: ResultCopyContext = challengeResult
+    ? challengeResult.exactZeroClear
+      ? 'challenge-complete'
+      : 'challenge-expired'
+    : 'free-complete'
+  const resultSummary = selectResultCopy(
+    copyContext,
+    metrics.totalQuantity + metrics.distinctProductCount + metrics.categoriesTouched.length,
+  )
 
   return (
     <View id={challengeResult ? 'challenge-result' : 'free-mode-result'} className='result-card'>
@@ -56,13 +68,7 @@ export function FreeModeResult({
             : M3_COPY.challengeExpiredTitle
           : M2_COPY.completedTitle}
       </Text>
-      <Text className='result-card__summary'>
-        {challengeResult
-          ? challengeResult.exactZeroClear
-            ? M3_COPY.challengeClearSummary
-            : M3_COPY.challengeExpiredSummary
-          : M2_COPY.completedSummary}
-      </Text>
+      <Text className='result-card__summary'>{resultSummary}</Text>
       {beatenRecordKinds.length > 0 ? (
         <View id='new-record-banner' className='new-record-banner'>
           <Text>★ {M4_COPY.newRecord}</Text>

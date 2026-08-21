@@ -1,8 +1,12 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Text, View } from '@tarojs/components'
+
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 
 import { CHALLENGE_DEFINITIONS } from '../../data/challenges'
 import type { RunMode } from '../../domain/game-state'
 import { M3_COPY } from '../../i18n/m3'
+import { M5_COPY } from '../../i18n/m5'
+import { useAccessibleDialog } from '../../platform/use-accessible-dialog'
 
 interface ChallengePickerProps {
   readonly open: boolean
@@ -17,11 +21,22 @@ export function ChallengePicker({
   onClose,
   onSelectMode,
 }: ChallengePickerProps): JSX.Element | null {
+  useAccessibleDialog({
+    open,
+    dialogId: 'challenge-picker-panel',
+    initialFocusId: currentMode === 'free' ? 'select-challenge-30' : 'close-challenge-picker',
+    onEscape: onClose,
+  })
   if (!open) return null
   return (
     <View id='challenge-picker' className='dialog-backdrop'>
-      <View className='challenge-picker'>
-        <Text className='challenge-picker__eyebrow'>CHOOSE YOUR COUNTDOWN</Text>
+      <View
+        id='challenge-picker-panel'
+        className='challenge-picker'
+        role='dialog'
+        ariaLabel={M5_COPY.challengeDialog}
+      >
+        <Text className='challenge-picker__eyebrow'>{M3_COPY.challengeEyebrow}</Text>
         <Text className='challenge-picker__title'>{M3_COPY.chooseChallenge}</Text>
         <Text className='challenge-picker__hint'>{M3_COPY.chooseChallengeHint}</Text>
         <View className='challenge-picker__options'>
@@ -35,7 +50,7 @@ export function ChallengePicker({
               onClick={() => onSelectMode(definition.mode)}
             >
               <Text className='challenge-option__duration'>{definition.labelZh}</Text>
-              <Text className='challenge-option__caption'>明确开始 · deadline 计时</Text>
+              <Text className='challenge-option__caption'>{M3_COPY.challengeOptionHint}</Text>
             </Button>
           ))}
         </View>

@@ -1,8 +1,10 @@
+@use './styles/tokens' as *;
+
 page {
   box-sizing: border-box;
   min-height: 100%;
-  background: #f3f0e8;
-  color: #13213c;
+  background: $canvas;
+  color: $ink;
   font-family:
     Inter,
     ui-sans-serif,
@@ -26,4 +28,16 @@ input {
 
 button::after {
   border: 0;
+}
+
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid $focus;
+  outline-offset: 3px;
+}
+
+button[disabled],
+input[disabled] {
+  cursor: not-allowed;
 }

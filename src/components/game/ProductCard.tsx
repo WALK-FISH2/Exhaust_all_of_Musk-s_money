@@ -1,14 +1,29 @@
-import { Button, Input, Text, View } from '@tarojs/components'
-import { memo, useEffect, useState } from 'react'
+import { Input, Text, View } from '@tarojs/components'
+import { memo, useEffect, useRef, useState } from 'react'
 
+import { AccessibleButton as Button } from '../../ui/AccessibleButton'
 import type { ProductCardViewModel } from '../../application/free-mode-controller'
 import { formatApproxCny } from '../../domain/currency-display'
 import { formatIntegerWithGrouping, formatUsd } from '../../domain/money'
 import { M2_COPY } from '../../i18n/m2'
-import { CATEGORY_EMOJI } from '../../ui/category-visuals'
+import { getProductVisualAsset } from '../../ui/product-visuals'
+
+export type PurchaseFeedbackLevel = 'none' | 'pulse' | 'strong' | 'burst'
+
+export function classifyPurchaseFeedback(deltaUsd: number): PurchaseFeedbackLevel {
+  if (deltaUsd >= 10_000_000_000) return 'burst'
+  if (deltaUsd >= 1_000_000_000) return 'strong'
+  if (deltaUsd >= 1_000_000) return 'pulse'
+  return 'none'
+}
+
+export function getProductControlLayoutClass(taroEnvironment: string | undefined): string {
+  return taroEnvironment === 'weapp' ? ' product-card--weapp-controls' : ''
+}
 
 interface ProductCardProps extends ProductCardViewModel {
   readonly readOnly: boolean
+  readonly visualSymbol?: string
   readonly onIncrement: (productId: string) => void
   readonly onDecrement: (productId: string) => void
   readonly onMax: (productId: string) => void
@@ -20,25 +35,48 @@ function ProductCardComponent({
   quantity,
   subtotalUsd,
   readOnly,
+  visualSymbol,
   onIncrement,
   onDecrement,
   onMax,
   onSetQuantity,
 }: ProductCardProps): JSX.Element {
   const [quantityDraft, setQuantityDraft] = useState(String(quantity))
+  const [purchaseFeedback, setPurchaseFeedback] = useState<PurchaseFeedbackLevel>('none')
+  const previousSubtotalUsd = useRef(subtotalUsd)
+  const resolvedVisualSymbol = visualSymbol ?? getProductVisualAsset(product).symbol
+  const platformControlClass = getProductControlLayoutClass(process.env.TARO_ENV)
 
   useEffect(() => {
     setQuantityDraft(String(quantity))
   }, [quantity])
+
+  useEffect(() => {
+    const deltaUsd = subtotalUsd - previousSubtotalUsd.current
+    previousSubtotalUsd.current = subtotalUsd
+    const nextFeedback = classifyPurchaseFeedback(deltaUsd)
+    if (deltaUsd <= 0) {
+      setPurchaseFeedback('none')
+      return undefined
+    }
+    setPurchaseFeedback(nextFeedback)
+    const timer = setTimeout(() => setPurchaseFeedback('none'), nextFeedback === 'none' ? 180 : 460)
+    return () => clearTimeout(timer)
+  }, [subtotalUsd])
 
   const commitQuantity = () => {
     onSetQuantity(product.id, quantityDraft)
   }
 
   return (
-    <View id={`product-${product.id}`} className='product-card product-card--compact-mobile'>
+    <View
+      id={`product-${product.id}`}
+      className={`product-card product-card--compact-mobile product-card--feedback-${purchaseFeedback}${platformControlClass}`}
+      role='group'
+      ariaLabel={product.nameZh}
+    >
       <View className={`product-card__visual product-card__visual--${product.categoryId}`}>
-        <Text className='product-card__emoji'>{CATEGORY_EMOJI[product.categoryId]}</Text>
+        <Text className='product-card__mark'>{resolvedVisualSymbol}</Text>
         <Text className='product-card__kind'>{product.kind}</Text>
       </View>
       <View className='product-card__content'>
@@ -65,7 +103,7 @@ function ProductCardComponent({
             id={`quantity-${product.id}`}
             className='quantity-input'
             type='number'
-            ariaLabel={`${product.nameZh} ${M2_COPY.quantityInput}`}
+            ariaLabel={`${product.nameZh} ${M2_COPY.quantityInput}，当前 ${quantity}`}
             value={quantityDraft}
             disabled={readOnly}
             onInput={(event) => setQuantityDraft(event.detail.value)}

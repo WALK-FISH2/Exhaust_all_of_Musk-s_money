@@ -1,8 +1,8 @@
 # Product Specification — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.1  
-> Date: 2026-08-18  
+> Version: 1.2  
+> Date: 2026-08-21  
 > Parent: `requirements-baseline.md`
 
 ## 1. Experience summary
@@ -324,7 +324,7 @@ Challenge result also provides `换个挑战`.
 
 For a completed or expired challenge, `返回商品` opens the frozen run in read-only mode. Quantity controls are disabled and no command may mutate the run. Purchasing requires `再来一局` or `换个挑战`. A completed Free Mode run follows the same read-only rule.
 
-Native image export/share is not required in v1.0.
+Generated image export and Web Share are not required in v1.0. The approved WeChat challenge-metadata share is defined by SPEC-065.
 
 ### SPEC-064 — Local record comparison
 
@@ -336,6 +336,20 @@ Challenge records use exact domain values:
 - fastest exact-zero clear compares integer `actualDurationMs` at millisecond precision;
 - strictly lower `actualDurationMs` replaces the record;
 - equal or higher `actualDurationMs` keeps the existing record.
+
+### SPEC-065 — WeChat challenge sharing
+
+The WeChat Mini Program page registers both native friend sharing and timeline sharing. Share parameters use the same validated query contract:
+
+- `challengeMode`: `challenge-30`, `challenge-60`, or `challenge-300`;
+- `duration`: matching integer seconds `30`, `60`, or `300`;
+- `record`: optional non-negative integer elapsed milliseconds no greater than the selected duration.
+
+When a record is available, selection order is deterministic: the current frozen challenge result, then the duration's fastest-clear record, then its highest-spending record. Friend and timeline shares use the same mode/duration/record snapshot.
+
+Opening a valid share selects the existing challenge mode and creates its normal `ready` run. It displays `好友挑战记录：xx 秒` when `record` is valid, leaves `startedAt`, `deadlineAt`, and `durationMs` unset, and requires the recipient to press `开始挑战`. It reuses the existing Challenge Picker and start transition; it never auto-starts or modifies timer math. If accepting the shared challenge would discard a non-empty active run, the existing restart confirmation remains mandatory.
+
+Invalid or mismatched query values are ignored safely. The share adapter does not write a new Storage field and does not introduce account, backend, save upload, ranking, or generated-image behavior.
 
 ## 10. Motion and feedback
 

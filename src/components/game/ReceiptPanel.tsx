@@ -1,6 +1,7 @@
 import { Text, View } from '@tarojs/components'
 
 import { PRODUCT_BY_ID } from '../../data/products'
+import type { ProductDefinition } from '../../domain/catalog'
 import { formatIntegerWithGrouping, formatUsd } from '../../domain/money'
 import type { Receipt } from '../../domain/receipt'
 import { M2_COPY } from '../../i18n/m2'
@@ -9,12 +10,14 @@ interface ReceiptPanelProps {
   readonly receipt: Receipt
   readonly achievementCount: number
   readonly totalAchievementCount: number
+  readonly productsById?: ReadonlyMap<string, ProductDefinition>
 }
 
 export function ReceiptPanel({
   receipt,
   achievementCount,
   totalAchievementCount,
+  productsById = PRODUCT_BY_ID,
 }: ReceiptPanelProps): JSX.Element {
   return (
     <View id='receipt-panel' className='receipt-panel'>
@@ -27,7 +30,7 @@ export function ReceiptPanel({
       ) : (
         <View className='receipt-lines'>
           {receipt.lines.map((line) => {
-            const product = PRODUCT_BY_ID.get(line.productId)
+            const product = productsById.get(line.productId)
             return (
               <View id={`receipt-${line.productId}`} key={line.productId} className='receipt-line'>
                 <View className='receipt-line__name'>
