@@ -1,7 +1,7 @@
 # Implementation Plan — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.3  
+> Version: 1.4  
 > Date: 2026-08-21
 
 ## Milestone M0 — Cross-platform technical spike
@@ -119,6 +119,7 @@ Deliver:
 - privacy/data-minimization review;
 - v1 feature-boundary review;
 - approved WeChat friend/timeline Free invitation and challenge-metadata sharing with new-Free/ready-state landings;
+- WEAPP-only native version-update readiness/failure prompts at the application entry;
 - stacked balance/challenge sticky visibility, challenge navigation, and WeChat quantity-control UX refinement;
 - production builds.
 

@@ -4,8 +4,9 @@ import { resolve } from 'node:path'
 const outputRoot = resolve('dist/h5')
 const indexPath = resolve(outputRoot, 'index.html')
 const cssRoot = resolve(outputRoot, 'css')
+const jsRoot = resolve(outputRoot, 'js')
 
-if (!existsSync(indexPath) || !existsSync(cssRoot)) {
+if (!existsSync(indexPath) || !existsSync(cssRoot) || !existsSync(jsRoot)) {
   throw new Error('Missing H5 build artifacts. Run the H5 build before this check.')
 }
 
@@ -18,6 +19,15 @@ const css = readdirSync(cssRoot)
   .filter((fileName) => fileName.endsWith('.css'))
   .map((fileName) => readFileSync(resolve(cssRoot, fileName), 'utf8'))
   .join('\n')
+
+const javascript = readdirSync(jsRoot)
+  .filter((fileName) => fileName.endsWith('.js'))
+  .map((fileName) => readFileSync(resolve(jsRoot, fileName), 'utf8'))
+  .join('\n')
+
+if (/getUpdateManager|onUpdateReady|onUpdateFailed/.test(javascript)) {
+  throw new Error('H5 bundle must not contain the WeChat Mini Program update-manager API.')
+}
 
 const gameShellRule = css.match(/\.game-shell\{[^}]+\}/)?.[0]
 if (!gameShellRule || !gameShellRule.includes('width:min(1460px,100%)')) {
@@ -61,5 +71,5 @@ if (!css.includes('.motion-settings') || !css.includes('.pwa-status')) {
 }
 
 console.log(
-  'H5 layout verification passed: CSS-pixel sizing, responsive cards, safe areas, focus visibility, motion preferences and PWA status are present.',
+  'H5 layout verification passed: CSS-pixel sizing, responsive cards, safe areas, focus visibility, motion preferences and PWA status are present; WeChat update APIs are absent.',
 )

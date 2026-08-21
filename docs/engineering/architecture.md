@@ -1,7 +1,7 @@
 # Architecture — Spend_Musk_Money
 
 > Status: Active  
-> Version: 2.3  
+> Version: 2.4  
 > Date: 2026-08-21  
 > Parent: `spec.md`
 
@@ -331,6 +331,7 @@ Allowed platform-specific concerns:
 - storage adapter;
 - lifecycle events;
 - approved WeChat challenge sharing behind a platform adapter;
+- WeChat Mini Program version-update detection at the application entry;
 - PWA install/update behavior;
 - responsive CSS differences;
 - safe-area handling;
@@ -358,6 +359,14 @@ Responsive presentation must not introduce a second product dataset, alternate m
 - A valid Free landing also reuses `select-mode` and creates an empty Free run without importing sender state; the same non-empty-run confirmation protects recipient-local progress.
 - Shared-record display is route/UI state only. It is not added to `RunState`, local records, or the persisted schema.
 - The challenge header reuses the existing picker and mode-selection actions. Ready and active statuses receive the same sticky class; completed and expired remain in normal flow. CSS design tokens reserve the balance-panel block size and place Challenge Status below it as a second independent sticky region. Sticky positioning is presentation-only and cannot affect deadline reconciliation.
+
+### 12.5 WeChat Mini Program update-manager policy
+
+- `src/app.tsx` owns the single application-level registration because version updates belong to the Mini Program shell, not page or game state.
+- A compile-time `process.env.TARO_ENV === 'weapp'` gate is the only production call site. H5/PWA bundles must not contain the native `wx` update-manager API.
+- Registration first checks `wx.canIUse('getUpdateManager')`; unsupported clients remain operational without an update prompt.
+- `onUpdateReady` uses a non-cancellable confirmation and applies the update only from the confirmed callback. `onUpdateFailed` reports retry guidance. `onCheckForUpdate` is registered without mutating application state.
+- The update manager has no access to Domain commands, challenge clock/deadline state, or Storage schema/data.
 
 ### 12.3 M5 presentation and accessibility policy
 
@@ -527,3 +536,12 @@ If the PWA build pipeline differs from the preferred plugin, update this archite
 - The aggregate gate passes with 250 tests across 26 files. TypeScript, ESLint, Prettier, H5, WeChat, and PWA production builds pass; the generated WeChat page bundle contains `useShareAppMessage`, `useShareTimeline`, `showShareMenu`, the validated Free/challenge query keys, ready/active sticky class, and separated inline WeChat quantity/MAX layout.
 - Browser measurements of the H5 production build pass at 1920×1080, 1366×768, 430×932, 390×844, and 360×800. The desktop sticky gap is 12px and the mobile gap is 10px with zero overlap; mobile ready/active status heights are both 131px, and the balance amount remains inside the balance panel in every sample.
 - This UX slice is complete, but the remaining M6 release-audit and real-device tasks are not claimed complete.
+
+### 17.8 M6 WeChat update-manager slice — 2026-08-21
+
+- T0623 registers the native Mini Program update manager once from `src/app.tsx` behind the WEAPP compile-time branch. The App component's children rendering remains unchanged.
+- Compatibility detection uses `wx.canIUse('getUpdateManager')`. Supported clients register `onCheckForUpdate`, `onUpdateReady`, and `onUpdateFailed`; unsupported clients continue without registration.
+- A ready update shows the approved non-cancellable confirmation and calls `applyUpdate()` only after confirmation. A failed download shows the approved non-cancellable recovery prompt.
+- Two contract tests cover unsupported clients, listener registration, confirmation gating, apply behavior, and failure copy. The aggregate gate passes with 252 tests across 27 files.
+- H5, WeChat, and PWA production artifacts pass. Generated WEAPP `app.js` contains the update-manager path, while the H5/PWA JavaScript artifact check confirms that native WeChat update APIs and copy are absent.
+- No Domain, catalog, achievement, challenge deadline, Storage schema, persistence data, sharing contract, or App children-rendering rule changed.

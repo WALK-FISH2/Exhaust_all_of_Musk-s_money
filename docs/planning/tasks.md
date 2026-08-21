@@ -1,7 +1,7 @@
 # Tasks — Spend_Musk_Money
 
 > Status: Active task backlog  
-> Version: 1.9  
+> Version: 1.10  
 > Date: 2026-08-21
 
 Task IDs are stable references. Do not renumber completed tasks.
@@ -272,6 +272,9 @@ T0501–T0516 and T0520 completion evidence is recorded in `docs/engineering/arc
 - [x] **T0622** Extend approved WeChat friend/timeline sharing to Free Mode with progress-free new-run landing, and stack ready/active Challenge Status below the independent sticky balance panel.  
       Requirements: BR-008, BR-009, BR-010, BR-021, BR-026, NFR-002.  
       Dependencies: T0620, T0621.
+- [x] **T0623** Add a WEAPP-only application update manager with compatibility detection, confirmed apply-update behavior, failure guidance, and H5/PWA bundle isolation.  
+      Requirements: BR-021, BR-022.  
+      Dependencies: T0002.
 - [ ] **T0614** Audit money, catalog, Free Mode, receipt/result, restart, currency, search, performance, and calculation-safety evidence. This is one domain portion split from T0601.  
       Requirements: BR-001, BR-002, BR-003, BR-004, BR-005, BR-006, BR-007, BR-008, BR-012, BR-013, BR-018, BR-023, BR-027, BR-028, BR-029, NFR-001.  
       Dependencies: T0118, T0209, T0416, T0520.

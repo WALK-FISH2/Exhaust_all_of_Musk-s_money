@@ -1,7 +1,7 @@
 # Product Specification — Spend_Musk_Money
 
 > Status: Active  
-> Version: 1.3  
+> Version: 1.4  
 > Date: 2026-08-21  
 > Parent: `requirements-baseline.md`
 
@@ -354,6 +354,12 @@ When a record is available, selection order is deterministic: the current frozen
 Opening a valid share selects the existing challenge mode and creates its normal `ready` run. It displays `好友挑战记录：xx 秒` when `record` is valid, leaves `startedAt`, `deadlineAt`, and `durationMs` unset, and requires the recipient to press `开始挑战`. It reuses the existing Challenge Picker and start transition; it never auto-starts or modifies timer math. If accepting the shared challenge would discard a non-empty active run, the existing restart confirmation remains mandatory.
 
 Invalid or mismatched query values are ignored safely. The share adapter does not write a new Storage field and does not introduce account, backend, save upload, ranking, or generated-image behavior.
+
+### SPEC-066 — WeChat Mini Program version update prompt
+
+The WeChat Mini Program application entry checks `wx.canIUse('getUpdateManager')` before obtaining the native update manager. It registers check, ready, and failure callbacks only in the WEAPP build; H5 and PWA builds must not reference or execute the `wx` update API.
+
+When a downloaded version becomes ready, the application shows a non-cancellable confirmation titled `发现新版本`, explains that confirming restarts the Mini Program, labels the confirmation action `立即更新`, and calls `applyUpdate()` only after confirmation. A download failure shows the non-cancellable `更新失败` prompt with recovery guidance. The update manager must not alter gameplay, challenge timing, or persisted data.
 
 ## 10. Motion and feedback
 

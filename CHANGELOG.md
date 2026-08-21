@@ -11,7 +11,9 @@
 - 新增根目录 `CHANGELOG.md`，集中维护项目变更历史。
 - 完成 T0620：新增微信小程序好友分享与朋友圈分享 Adapter，统一生成并校验 `challengeMode / duration / record` 参数；有效分享落地复用现有状态机进入 ready，展示好友记录且不自动开始倒计时。
 - 完成 T0622：微信好友与朋友圈分享扩展到自由模式；自由分享仅携带 `shareMode=free`，不携带余额、商品数量、RunState 或成绩，落地复用既有状态机创建新自由局。挑战分享继续携带经校验的时长与可选成绩，并保持 ready 手动开始。
+- 完成 T0623：在微信小程序 App 入口增加原生版本更新管理器；兼容客户端监听检查、下载完成和下载失败事件，下载完成后通过不可取消的“立即更新”确认应用新版本，失败时提示检查网络并重新打开。
 - 新增 M6 集中式分享文案与 8 项 UX/分享回归测试，覆盖自由/挑战好友与朋友圈参数、非法混合参数、自由新局与挑战 ready 落地、顶部按钮、ready/active sticky、自由模式隐藏状态条、微信 MAX 行内布局及目标宽度控件间距。
+- 新增 2 项微信更新管理器契约测试和 H5 构建产物隔离检查，覆盖不兼容客户端跳过注册、三类监听、确认前不更新、确认后应用更新、失败提示以及 H5/PWA 不包含微信更新 API。
 - 完成 M5 的 T0501–T0510、T0512–T0516：新增正式现代扁平化 design tokens、安全区与六档 Edge 响应式布局、余额/大额购买/成就/结算装饰动效，以及可持久化的 `system / reduce / full` 动效偏好。
 - 新增 45 个按正式商品 ID 注册、互不重复的原创代码原生商品标记，并为素材登记 creator、format、license、source、attribution 与验收清单；未引入真人照片、公司/IP 标志、外链或参考站素材。
 - 新增 H5 可访问按钮封装、对话框焦点陷阱/恢复/Escape 行为、可见键盘焦点、非纯颜色状态提示与窄屏 44px 关键触控目标。
@@ -83,7 +85,8 @@
 
 ### Verified
 
-- M6 分享/挑战 UX 切片质量门通过：26 个测试文件中的 250 项测试全部通过，TypeScript、ESLint、Prettier 和聚合 `check` 通过；H5、微信小程序与 PWA 生产构建通过，微信产物包含好友/朋友圈生命周期、标准分享菜单、自由/挑战参数键、ready/active 双 sticky 与微信 MAX 行内样式。
+- M6 分享/挑战/微信更新 UX 切片质量门通过：27 个测试文件中的 252 项测试全部通过，TypeScript、ESLint、Prettier 和聚合 `check` 通过；H5、微信小程序与 PWA 生产构建/产物检查通过，微信产物包含好友/朋友圈生命周期、标准分享菜单、自由/挑战参数键、ready/active 双 sticky、微信 MAX 行内样式和更新管理器。
+- 微信更新产物隔离核对通过：WEAPP `app.js` 包含 `canIUse/getUpdateManager`、三类监听、确认弹窗及 `applyUpdate`，H5/PWA JS 不包含 `getUpdateManager/onUpdateReady/onUpdateFailed` 或更新提示文案。
 - H5 生产构建的双 sticky 浏览器实测通过 1920×1080、1366×768、430×932、390×844、360×800：桌面余额/挑战栏间距为 12px，移动端为 10px，重叠均为 0；移动端 ready/active Challenge Status 均为 131px，金额始终完整位于余额栏内，自由模式 Challenge Status DOM 数量为 0。
 - M5 最终自动化质量门通过：25 个测试文件中的 242 项测试全部通过，TypeScript、ESLint、Prettier 和聚合 `check` 通过；H5、微信小程序、PWA 生产构建，H5 布局、PWA 产物和双端素材体积检查通过。
 - T0511 实际安装验收完成：项目验收人通过 Microsoft Edge“应用 → 将此站点作为应用安装”成功安装“花光 $400B”，安装后以 standalone 应用重新打开并完成游戏操作；manifest、Service Worker、display-mode 与四态安装文案核对通过。
